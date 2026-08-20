@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AiNews</title>
+  <title>AI Infographic & Dashboard Generator</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     body { background-color: #f0f2f5; display: flex; justify-content: center; height: 100vh; padding: 15px; }
@@ -30,7 +30,7 @@
 <body>
 
 <div class="app-container">
-  <div class="header">🎨 AI Visual Dashboard Generator (Imagen 3)</div>
+  <div class="header">🎨 AI Visual Dashboard Generator</div>
   
   <div class="config-panel">
     <input type="password" id="apiKey" placeholder="1. Masukkan Gemini API Key...">
@@ -98,10 +98,10 @@
 
     Petunjuk:
     1. Jawab pertanyaan pengguna.
-    2. Jika pengguna meminta GAMBAR, INFOGRAFIS, DASHBOARD VISUAL, atau GRAFIK VISUAL, buatlah prompt bahasa Inggris yang sangat detail untuk model pembuat gambar (Imagen) di AKHIR jawaban Anda dengan format persis:
+    2. Jika pengguna meminta GAMBAR, INFOGRAFIS, DASHBOARD VISUAL, atau GRAFIK VISUAL, buatlah prompt bahasa Inggris ringkas untuk model pembuat gambar di AKHIR jawaban Anda dengan format persis:
 
     $$IMAGE_PROMPT
-    A professional, modern, high-resolution infographic dashboard UI. Dark mode theme, vibrant gradient colors. Featuring charts, KPI cards, and visual metrics summarizing this data: [TULIS RINGKASAN METRIK/ANGKA UTAMA DATA DI SINI]. Clean UI, vector art style, highly detailed.
+    A modern high-resolution infographic dashboard UI, dark mode, colorful gradient charts, KPI cards summarizing data: [TULIS METRIK/ANGKA UTAMA DATA DI SINI]. Clean UI vector style.
     $$IMAGE_PROMPT
     `;
 
@@ -139,50 +139,37 @@
         loadingImgText.style.marginTop = '10px';
         loadingImgText.style.fontStyle = 'italic';
         loadingImgText.style.color = '#1a73e8';
-        loadingImgText.textContent = '🎨 Sedang menggambar dashboard visual (Imagen 3)...';
+        loadingImgText.textContent = '🎨 Sedang menggambar dashboard visual...';
         botMessageContainer.appendChild(loadingImgText);
 
-        await generateImagen3Image(imagePromptText, apiKey, botMessageContainer, loadingImgText);
+        renderImageFromPrompt(imagePromptText, botMessageContainer, loadingImgText);
       }
 
     } catch (error) {
-      botMessageContainer.textContent = "Gagal terhubung ke API.";
+      botMessageContainer.textContent = "Gagal terhubung ke API Gemini.";
     }
   }
 
-  async function generateImagen3Image(promptText, apiKey, container, loadingEl) {
+  function renderImageFromPrompt(promptText, container, loadingEl) {
     try {
-      const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:generateImages?key=${apiKey}`;
-      
-      const response = await fetch(imagenUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: promptText,
-          config: {
-            numberOfImages: 1,
-            aspectRatio: "16:9",
-            outputMimeType: "image/jpeg"
-          }
-        })
-      });
+      const encodedPrompt = encodeURIComponent(promptText);
+      // Menggunakan Pollinations.ai API yang bebas CORS & gratis
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1280&height=720&nologo=true&seed=${Math.floor(Math.random() * 1000)}`;
 
-      const data = await response.json();
+      const img = document.createElement('img');
+      img.className = 'dashboard-img';
+      img.src = imageUrl;
 
-      if (data.error) {
-        loadingEl.textContent = "Gagal membuat gambar: " + data.error.message;
-      } else if (data.generatedImages && data.generatedImages.length > 0) {
+      img.onload = () => {
         loadingEl.remove();
-        const base64Image = data.generatedImages[0].image.imageBytes;
-        const img = document.createElement('img');
-        img.className = 'dashboard-img';
-        img.src = `data:image/jpeg;base64,${base64Image}`;
         container.appendChild(img);
-      } else {
-        loadingEl.textContent = "Format respon gambar tidak ditemukan.";
-      }
+      };
+
+      img.onerror = () => {
+        loadingEl.textContent = "Gagal memuat gambar dashboard.";
+      };
     } catch (err) {
-      loadingEl.textContent = "Gagal memproses Imagen 3 API: " + err.message;
+      loadingEl.textContent = "Gagal memproses gambar: " + err.message;
     }
   }
 
