@@ -1,375 +1,1055 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-theme="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AiNews - TV Share Data Dashboard</title>
-  <!-- ApexCharts untuk grafik interaktif -->
-  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-  <!-- Google Font: Inter -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-    body { background-color: #f8fafc; display: flex; flex-direction: column; height: 100vh; overflow: hidden; color: #1e293b; }
-    
-    /* --- NAVBAR --- */
-    .navbar { background: #ffffff; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); z-index: 10; }
-    .navbar-left { display: flex; align-items: center; gap: 12px; }
-    .navbar-logo { height: 32px; width: auto; object-fit: contain; }
-    .navbar-brand { font-size: 20px; font-weight: 700; color: #0f172a; letter-spacing: -0.5px; }
-    .navbar-tag { font-size: 12px; font-weight: 500; color: #64748b; padding-left: 12px; border-left: 1px solid #cbd5e1; }
-    .navbar-right { display: flex; align-items: center; gap: 12px; }
-    .btn-reset-key { font-size: 12px; font-weight: 600; color: #475569; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 6px 14px; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
-    .btn-reset-key:hover { background: #e2e8f0; color: #0f172a; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AiNews — TV Share Intelligence</title>
 
-    /* --- MAIN LAYOUT --- */
-    .main-container { display: flex; flex: 1; overflow: hidden; }
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 
-    /* --- LEFT PANEL: DASHBOARD --- */
-    .dashboard-panel { flex: 1; padding: 24px; overflow-y: auto; background-color: #f8fafc; }
-    .dashboard-header { margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; }
-    .dashboard-header h1 { font-size: 22px; font-weight: 700; color: #0f172a; }
-    .status-badge { font-size: 12px; padding: 6px 14px; background: #e0f2fe; color: #0369a1; border-radius: 20px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #0284c7; }
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-    /* Empty State */
-    .empty-state { height: 75%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94a3b8; text-align: center; padding: 40px; }
-    .empty-state svg { width: 64px; height: 64px; margin-bottom: 16px; stroke: #cbd5e1; }
-    .empty-state h3 { font-size: 18px; font-weight: 600; color: #475569; margin-bottom: 8px; }
-    .empty-state p { font-size: 14px; color: #64748b; max-width: 420px; line-height: 1.5; }
+<style>
+/* ============ TOKENS ============ */
+:root{
+  --ink:#0A0F1C; --panel:#121A2B; --panel-2:#182238; --line:#243350;
+  --txt:#E9EEF9; --txt-mid:#A7B6D4; --txt-dim:#6F82A6;
+  --signal:#FF3B47; --signal-soft:rgba(255,59,71,.14);
+  --onair:#FFB020; --cyan:#3DD6F5; --mint:#38E1A4; --violet:#9B8CFF;
+  --grid:rgba(255,255,255,.06);
+  --shadow:0 18px 40px -22px rgba(0,0,0,.8);
+  --r:14px;
+  --display:'Bricolage Grotesque',system-ui,sans-serif;
+  --body:'Inter Tight',system-ui,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+[data-theme="light"]{
+  --ink:#EEF1F7; --panel:#FFFFFF; --panel-2:#F5F7FC; --line:#DCE3F0;
+  --txt:#0E1626; --txt-mid:#4A5A78; --txt-dim:#7A8AA8;
+  --grid:rgba(10,20,40,.07);
+  --shadow:0 14px 34px -22px rgba(15,30,60,.45);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--ink); color:var(--txt); font-family:var(--body);
+  display:flex; flex-direction:column; overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:10px;border:3px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-track{background:transparent}
+button,input,textarea,select{font-family:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;border-radius:6px}
 
-    /* KPI Cards */
-    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .kpi-card { background: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: transform 0.2s, box-shadow 0.2s; }
-    .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-    .kpi-title { font-size: 12px; color: #64748b; text-transform: uppercase; font-weight: 600; margin-bottom: 6px; letter-spacing: 0.5px; }
-    .kpi-value { font-size: 26px; font-weight: 700; color: #0f172a; }
+/* ============ TOPBAR ============ */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:10px 18px;background:var(--panel);border-bottom:1px solid var(--line);z-index:20;
+}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.mark{
+  width:38px;height:38px;border-radius:11px;display:grid;place-items:center;flex:none;
+  background:linear-gradient(150deg,var(--signal),#B01020);
+  font-family:var(--display);font-weight:800;font-size:17px;color:#fff;letter-spacing:-.5px;
+  box-shadow:0 6px 18px -8px var(--signal);
+}
+.brand-txt{display:flex;flex-direction:column;line-height:1.05;min-width:0}
+.brand-name{font-family:var(--display);font-size:19px;font-weight:800;letter-spacing:-.6px}
+.brand-name em{font-style:normal;color:var(--signal)}
+.brand-sub{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--txt-dim);font-weight:600;white-space:nowrap}
 
-    /* Charts Area */
-    .charts-grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
-    .chart-box { background: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    .chart-title { font-size: 16px; font-weight: 600; color: #1e293b; margin-bottom: 16px; }
+.onair{
+  display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;
+  background:var(--signal-soft);border:1px solid rgba(255,59,71,.35);
+  font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--signal);
+}
+.onair .dot{width:7px;height:7px;border-radius:50%;background:currentColor;animation:pulse 1.8s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.8)}}
+.onair.ok{background:rgba(56,225,164,.12);border-color:rgba(56,225,164,.35);color:var(--mint)}
+.onair.warn{background:rgba(255,176,32,.12);border-color:rgba(255,176,32,.35);color:var(--onair)}
 
-    /* --- RIGHT PANEL: CHATBOT --- */
-    .chat-panel { width: 380px; background: #ffffff; border-left: 1px solid #e2e8f0; display: flex; flex-direction: column; box-shadow: -2px 0 10px rgba(0,0,0,0.02); }
-    .chat-header { padding: 16px 20px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-weight: 600; font-size: 15px; color: #0f172a; display: flex; align-items: center; justify-content: space-between; }
-    .chat-header-title { display: flex; align-items: center; gap: 8px; }
+.tools{display:flex;align-items:center;gap:8px}
+.btn{
+  display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:10px;
+  background:var(--panel-2);border:1px solid var(--line);color:var(--txt-mid);
+  font-size:12.5px;font-weight:600;cursor:pointer;transition:.16s;white-space:nowrap;
+}
+.btn:hover{color:var(--txt);border-color:var(--txt-dim);transform:translateY(-1px)}
+.btn.primary{background:var(--signal);border-color:var(--signal);color:#fff}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent}
+.btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 
-    .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; background-color: #ffffff; }
-    .message { max-width: 88%; padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.5; word-wrap: break-word; }
-    .bot { background: #f1f5f9; color: #334155; align-self: flex-start; border-bottom-left-radius: 4px; }
-    .user { background: #2563eb; color: #ffffff; align-self: flex-end; border-bottom-right-radius: 4px; }
+/* ============ WORKSPACE ============ */
+.workspace{display:flex;flex:1;overflow:hidden}
 
-    .input-area { padding: 16px; border-top: 1px solid #e2e8f0; background: #ffffff; display: flex; gap: 10px; }
-    .input-area input { flex: 1; padding: 12px 14px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; font-size: 14px; transition: border 0.2s; }
-    .input-area input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-    .input-area button { padding: 12px 18px; border: none; background: #2563eb; color: white; border-radius: 8px; cursor: pointer; font-weight: 600; transition: background 0.2s; }
-    .input-area button:hover { background: #1d4ed8; }
+/* ---- canvas ---- */
+.canvas-wrap{flex:1;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth}
+.canvas{padding:22px 26px 60px;max-width:1400px;margin:0 auto}
 
-    /* Responsive Layout */
-    @media (max-width: 900px) {
-      .main-container { flex-direction: column; }
-      .chat-panel { width: 100%; height: 50vh; border-left: none; border-top: 1px solid #e2e8f0; }
-      .dashboard-panel { height: 50vh; }
-    }
-  </style>
+.canvas-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:6px}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--signal);font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.eyebrow::before{content:"";width:22px;height:2px;background:var(--signal);display:block}
+h1.title{font-family:var(--display);font-size:clamp(23px,3vw,34px);font-weight:800;letter-spacing:-1px;line-height:1.08}
+.subtitle{color:var(--txt-mid);font-size:14px;margin-top:8px;max-width:70ch;line-height:1.55}
+
+/* ticker — signature strip */
+.ticker{
+  margin:18px 0 22px;border:1px solid var(--line);border-left:3px solid var(--signal);
+  background:var(--panel);border-radius:10px;overflow:hidden;display:flex;align-items:center;height:40px;
+}
+.ticker-tag{
+  flex:none;padding:0 14px;height:100%;display:flex;align-items:center;gap:7px;
+  background:var(--signal);color:#fff;font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.16em;
+}
+.ticker-track{flex:1;overflow:hidden;position:relative;height:100%}
+.ticker-move{position:absolute;white-space:nowrap;display:flex;align-items:center;height:100%;animation:slide 42s linear infinite;font-family:var(--mono);font-size:12px;color:var(--txt-mid)}
+.ticker-move span{padding:0 22px;position:relative}
+.ticker-move span::after{content:"";position:absolute;right:0;top:50%;width:4px;height:4px;border-radius:50%;background:var(--line);transform:translateY(-50%)}
+.ticker-move b{color:var(--txt);font-weight:700}
+@keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* empty state */
+.empty{
+  margin-top:30px;border:1px dashed var(--line);border-radius:18px;background:var(--panel);
+  padding:56px 34px;text-align:center;
+}
+.bars{display:flex;align-items:flex-end;justify-content:center;gap:9px;height:78px;margin-bottom:26px}
+.bars i{width:16px;border-radius:4px 4px 2px 2px;background:var(--line);display:block;animation:bob 2.6s ease-in-out infinite}
+.bars i:nth-child(1){height:34%;animation-delay:0s}
+.bars i:nth-child(2){height:62%;background:var(--signal);animation-delay:.18s}
+.bars i:nth-child(3){height:88%;animation-delay:.36s}
+.bars i:nth-child(4){height:48%;animation-delay:.54s}
+.bars i:nth-child(5){height:70%;background:var(--cyan);animation-delay:.72s}
+@keyframes bob{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.72)}}
+.empty h3{font-family:var(--display);font-size:21px;font-weight:700;letter-spacing:-.4px;margin-bottom:10px}
+.empty p{color:var(--txt-mid);font-size:14px;max-width:52ch;margin:0 auto 22px;line-height:1.6}
+.chips{display:flex;flex-wrap:wrap;gap:9px;justify-content:center}
+.chip{
+  padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--panel-2);
+  color:var(--txt-mid);font-size:12.5px;font-weight:500;cursor:pointer;transition:.16s;
+}
+.chip:hover{color:var(--txt);border-color:var(--signal);background:var(--signal-soft)}
+
+/* KPI — broadcast lower-third styling */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px;margin:22px 0}
+.kpi{
+  position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+  padding:17px 18px 16px 21px;overflow:hidden;box-shadow:var(--shadow);animation:rise .5s both;
+}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--signal)}
+.kpi:nth-child(2)::before{background:var(--cyan)} .kpi:nth-child(3)::before{background:var(--onair)}
+.kpi:nth-child(4)::before{background:var(--mint)} .kpi:nth-child(5)::before{background:var(--violet)}
+.kpi:nth-child(2){animation-delay:.06s} .kpi:nth-child(3){animation-delay:.12s}
+.kpi:nth-child(4){animation-delay:.18s} .kpi:nth-child(5){animation-delay:.24s}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.kpi-label{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--txt-dim);font-weight:700;margin-bottom:9px}
+.kpi-val{font-family:var(--display);font-size:30px;font-weight:800;letter-spacing:-1.2px;line-height:1;font-variant-numeric:tabular-nums}
+.kpi-foot{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:var(--txt-dim)}
+.delta{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;font-family:var(--mono);font-size:11px;font-weight:700}
+.delta.up{background:rgba(56,225,164,.13);color:var(--mint)}
+.delta.down{background:var(--signal-soft);color:var(--signal)}
+.delta.flat{background:var(--panel-2);color:var(--txt-dim)}
+
+/* charts */
+.charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.card{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+  padding:18px 18px 8px;box-shadow:var(--shadow);animation:rise .5s both;min-width:0;
+}
+.card.full{grid-column:1/-1}
+.card-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:4px;flex-wrap:wrap}
+.card-title{font-family:var(--display);font-size:16px;font-weight:700;letter-spacing:-.3px}
+.card-note{font-size:11.5px;color:var(--txt-dim)}
+.card-sub{font-size:12.5px;color:var(--txt-mid);margin:4px 0 10px;line-height:1.5}
+
+/* insights */
+.insights{margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px;box-shadow:var(--shadow)}
+.insights h4{font-family:var(--display);font-size:16px;font-weight:700;margin-bottom:14px;letter-spacing:-.3px}
+.ins{display:flex;gap:13px;padding:11px 0;border-top:1px solid var(--line)}
+.ins:first-of-type{border-top:none;padding-top:0}
+.ins .idx{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--signal);padding-top:2px;flex:none;width:22px}
+.ins-body strong{display:block;font-size:13.5px;font-weight:700;margin-bottom:3px}
+.ins-body p{font-size:13px;color:var(--txt-mid);line-height:1.6}
+
+/* table */
+.tablewrap{margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+.tablewrap h4{font-family:var(--display);font-size:16px;font-weight:700;padding:18px 20px 12px;letter-spacing:-.3px}
+.scrollx{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{
+  text-align:left;padding:10px 16px;background:var(--panel-2);color:var(--txt-dim);
+  font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;white-space:nowrap;
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+}
+td{padding:11px 16px;border-bottom:1px solid var(--line);color:var(--txt-mid);white-space:nowrap}
+td:first-child{color:var(--txt);font-weight:600}
+tbody tr:hover td{background:var(--panel-2)}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* skeleton */
+.skeleton{display:grid;gap:14px;margin-top:22px}
+.sk{background:linear-gradient(90deg,var(--panel) 25%,var(--panel-2) 50%,var(--panel) 75%);background-size:200% 100%;animation:shim 1.4s infinite;border-radius:var(--r);border:1px solid var(--line)}
+@keyframes shim{to{background-position:-200% 0}}
+
+/* ============ CHAT ============ */
+.chat{
+  width:392px;flex:none;background:var(--panel);border-left:1px solid var(--line);
+  display:flex;flex-direction:column;min-height:0;
+}
+.chat-head{
+  padding:13px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;
+  justify-content:space-between;gap:10px;background:var(--panel-2);
+}
+.chat-id{display:flex;align-items:center;gap:11px}
+.avatar{
+  width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none;
+  background:linear-gradient(150deg,var(--cyan),#1B7FA8);color:#04121C;
+  font-family:var(--display);font-weight:800;font-size:13px;
+}
+.chat-id b{font-family:var(--display);font-size:14.5px;font-weight:700;letter-spacing:-.2px;display:block}
+.chat-id span{font-size:11px;color:var(--txt-dim)}
+
+.stream{flex:1;overflow-y:auto;padding:20px 18px;display:flex;flex-direction:column;gap:16px;min-height:0}
+.msg{display:flex;gap:11px;max-width:100%;animation:rise .35s both}
+.msg .who{
+  width:27px;height:27px;border-radius:8px;flex:none;display:grid;place-items:center;
+  font-family:var(--mono);font-size:9.5px;font-weight:700;margin-top:2px;
+}
+.msg.bot .who{background:var(--signal-soft);color:var(--signal);border:1px solid rgba(255,59,71,.3)}
+.msg.me{flex-direction:row-reverse}
+.msg.me .who{background:var(--panel-2);color:var(--txt-dim);border:1px solid var(--line)}
+.bubble{
+  padding:11px 14px;border-radius:13px;font-size:13.5px;line-height:1.65;
+  background:var(--panel-2);border:1px solid var(--line);color:var(--txt-mid);
+  border-top-left-radius:4px;word-break:break-word;overflow-wrap:anywhere;
+}
+.msg.me .bubble{background:var(--signal);border-color:var(--signal);color:#fff;border-top-left-radius:13px;border-top-right-radius:4px}
+.bubble strong{color:var(--txt);font-weight:700}
+.msg.me .bubble strong{color:#fff}
+.bubble ul,.bubble ol{margin:7px 0 7px 17px}
+.bubble li{margin:3px 0}
+.bubble code{font-family:var(--mono);font-size:12px;background:rgba(127,160,220,.16);padding:1px 5px;border-radius:4px}
+.bubble h5{font-family:var(--display);font-size:13.5px;color:var(--txt);margin:9px 0 4px}
+.bubble a{color:var(--cyan)}
+.tagline{margin-top:9px;display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--mint);font-family:var(--mono)}
+
+.typing{display:flex;gap:5px;padding:5px 2px}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--txt-dim);animation:blink 1.3s infinite}
+.typing i:nth-child(2){animation-delay:.18s} .typing i:nth-child(3){animation-delay:.36s}
+@keyframes blink{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+
+.suggest{display:flex;gap:7px;padding:0 16px 10px;flex-wrap:wrap}
+.suggest .chip{font-size:11.5px;padding:6px 11px}
+
+.composer{padding:13px 16px 16px;border-top:1px solid var(--line);background:var(--panel)}
+.field{display:flex;align-items:flex-end;gap:9px;background:var(--panel-2);border:1px solid var(--line);border-radius:13px;padding:8px 8px 8px 14px;transition:.16s}
+.field:focus-within{border-color:var(--signal);box-shadow:0 0 0 3px var(--signal-soft)}
+.field textarea{
+  flex:1;background:none;border:none;outline:none;resize:none;font-size:13.5px;line-height:1.5;
+  max-height:120px;padding:6px 0;color:var(--txt);
+}
+.field textarea::placeholder{color:var(--txt-dim)}
+.send{
+  width:36px;height:36px;border-radius:10px;border:none;background:var(--signal);color:#fff;
+  display:grid;place-items:center;cursor:pointer;flex:none;transition:.16s;
+}
+.send:hover{filter:brightness(1.1)} .send:disabled{opacity:.4;cursor:not-allowed}
+.send svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.hint{font-size:10.5px;color:var(--txt-dim);margin-top:8px;text-align:center;font-family:var(--mono)}
+
+/* ============ MODAL ============ */
+.veil{position:fixed;inset:0;background:rgba(4,8,18,.72);backdrop-filter:blur(6px);display:none;place-items:center;z-index:60;padding:20px}
+.veil.on{display:grid}
+.modal{
+  width:min(500px,100%);background:var(--panel);border:1px solid var(--line);border-radius:18px;
+  padding:26px;box-shadow:0 40px 80px -30px rgba(0,0,0,.8);animation:rise .3s both;max-height:90vh;overflow-y:auto;
+}
+.modal h3{font-family:var(--display);font-size:20px;font-weight:800;letter-spacing:-.5px;margin-bottom:6px}
+.modal p.lead{font-size:13px;color:var(--txt-mid);line-height:1.6;margin-bottom:20px}
+.f{margin-bottom:15px}
+.f label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--txt-dim);font-weight:700;margin-bottom:7px}
+.f input,.f select{
+  width:100%;padding:11px 13px;border-radius:10px;background:var(--panel-2);
+  border:1px solid var(--line);font-size:13.5px;outline:none;transition:.16s;
+}
+.f input:focus,.f select:focus{border-color:var(--signal);box-shadow:0 0 0 3px var(--signal-soft)}
+.f small{display:block;margin-top:6px;font-size:11.5px;color:var(--txt-dim);line-height:1.5}
+.f small a{color:var(--cyan)}
+.modal-foot{display:flex;gap:9px;justify-content:flex-end;margin-top:22px;flex-wrap:wrap}
+
+/* toast */
+.toast{
+  position:fixed;bottom:22px;left:50%;transform:translate(-50%,20px);opacity:0;pointer-events:none;
+  background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--mint);
+  padding:12px 18px;border-radius:11px;font-size:13px;box-shadow:var(--shadow);z-index:80;transition:.25s;
+}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.toast.bad{border-left-color:var(--signal)}
+
+/* mobile */
+.tabs{display:none;gap:6px;padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+.tabs button{flex:1;padding:9px;border-radius:9px;border:1px solid var(--line);background:transparent;color:var(--txt-dim);font-size:12.5px;font-weight:700;cursor:pointer}
+.tabs button.on{background:var(--signal);border-color:var(--signal);color:#fff}
+@media(max-width:1080px){.charts{grid-template-columns:1fr}.card.full{grid-column:auto}}
+@media(max-width:900px){
+  .tabs{display:flex}
+  .workspace{position:relative}
+  .chat{position:absolute;inset:0;width:100%;border-left:none}
+  body[data-view="chat"] .canvas-wrap{display:none}
+  body[data-view="dash"] .chat{display:none}
+  .canvas{padding:18px 14px 40px}
+  .brand-sub{display:none}
+  .tools .label{display:none}
+  .btn{padding:8px 10px}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
 </head>
-<body>
+<body data-view="dash">
 
-  <!-- NAVBAR -->
-  <nav class="navbar">
-    <div class="navbar-left">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/0/09/INews.png" alt="iNews Logo" class="navbar-logo">
-      <div class="navbar-brand">AiNews</div>
-      <div class="navbar-tag">TV Share Data Analytics</div>
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="brand">
+    <div class="mark">Ai</div>
+    <div class="brand-txt">
+      <div class="brand-name">Ai<em>News</em></div>
+      <div class="brand-sub">TV Share Intelligence</div>
     </div>
-    <div class="navbar-right">
-      <button class="btn-reset-key" onclick="resetApiKey()">🔑 Ganti API Key</button>
-    </div>
-  </nav>
+  </div>
+  <div class="tools">
+    <div class="onair" id="status"><span class="dot"></span><span id="statusTxt">Menyambung</span></div>
+    <button class="btn ghost" onclick="toggleTheme()" title="Ganti tema">
+      <svg viewBox="0 0 24 24" id="themeIcon"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+      <span class="label">Tema</span>
+    </button>
+    <button class="btn" onclick="openSettings()">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9v0a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      <span class="label">Pengaturan</span>
+    </button>
+    <button class="btn primary" onclick="exportDashboard()" id="btnExport">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+      <span class="label">Unduh gambar</span>
+    </button>
+  </div>
+</header>
 
-  <!-- MAIN CONTENT CONTAINER -->
-  <div class="main-container">
-    
-    <!-- PANEL KIRI: DASHBOARD VISUALISASI -->
-    <div class="dashboard-panel" id="dashboardPanel">
-      <div class="dashboard-header">
-        <h1 id="dashTitle">Ringkasan Analisis Data</h1>
-        <div class="status-badge" id="sheetStatus">
-          <span class="status-dot" id="statusDot"></span>
-          <span id="statusText">Memeriksa Akses...</span>
+<div class="tabs">
+  <button class="on" onclick="setView('dash',this)">Dashboard</button>
+  <button onclick="setView('chat',this)">Asisten</button>
+</div>
+
+<!-- WORKSPACE -->
+<div class="workspace">
+
+  <!-- CANVAS -->
+  <div class="canvas-wrap">
+    <div class="canvas" id="canvas">
+      <div class="canvas-head">
+        <div>
+          <div class="eyebrow" id="eyebrow">Ruang kendali data</div>
+          <h1 class="title" id="dashTitle">Belum ada dashboard</h1>
+          <p class="subtitle" id="dashSub">Minta apa pun ke asisten di panel kanan — rekap share, perbandingan channel, tren mingguan, program terkuat — dan hasilnya digambar di sini.</p>
         </div>
       </div>
-      
-      <!-- Container Konten Dashboard -->
-      <div id="dashboardContent">
-        <div class="empty-state">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-          </svg>
-          <h3>Belum Ada Visualisasi</h3>
-          <p>Instruksikan chatbot di sebelah kanan untuk menganalisis data atau membuatkan dashboard TV Share.</p>
-        </div>
-      </div>
-    </div>
 
-    <!-- PANEL KANAN: CHATBOT ASISTEN -->
-    <div class="chat-panel">
-      <div class="chat-header">
-        <div class="chat-header-title">
-          🤖 <span>Asisten AiNews</span>
+      <div class="ticker">
+        <div class="ticker-tag"><span style="width:6px;height:6px;border-radius:50%;background:#fff;display:block;animation:pulse 1.8s infinite"></span>LIVE</div>
+        <div class="ticker-track"><div class="ticker-move" id="tickerMove"><span>Menunggu sumber data terhubung…</span></div></div>
+      </div>
+
+      <div id="content">
+        <div class="empty">
+          <div class="bars"><i></i><i></i><i></i><i></i><i></i></div>
+          <h3>Panel ini masih kosong</h3>
+          <p>Mulai dengan satu pertanyaan. Asisten membaca isi spreadsheet, menghitung angkanya, lalu menyusun kartu KPI, grafik, dan catatan temuan.</p>
+          <div class="chips" id="starterChips"></div>
         </div>
       </div>
-      <div class="chat-box" id="chatBox">
-        <!-- Pesan interaktif akan dimuat via JS -->
-      </div>
-      <div class="input-area">
-        <input type="text" id="userInput" placeholder="Ketik pesan atau API Key di sini..." onkeydown="if(event.key === 'Enter') sendMessage()">
-        <button onclick="sendMessage()">Kirim</button>
-      </div>
     </div>
-    
   </div>
 
-  <script>
-    const SPREADSHEET_ID = "1vNI9Pgrm99obZBoebpA8f4myU_Xw-4QScEAoJjeW9u8";
-    let apiKey = "";
-    let isAwaitingApiKey = false;
-    let rawSheetData = "";
+  <!-- CHAT -->
+  <aside class="chat">
+    <div class="chat-head">
+      <div class="chat-id">
+        <div class="avatar">AI</div>
+        <div><b>Asisten AiNews</b><span id="modelBadge">gemini</span></div>
+      </div>
+      <button class="btn ghost" onclick="clearChat()" title="Mulai percakapan baru">
+        <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 109-9 9 9 0 00-6.36 2.64L3 8"/><path d="M3 3v5h5"/></svg>
+      </button>
+    </div>
 
-    // Inisialisasi saat web dibuka
-    window.onload = function() {
-      const savedKey = localStorage.getItem('gemini_api_key');
-      if (savedKey) {
-        apiKey = savedKey;
-        isAwaitingApiKey = false;
-        appendBotMessage("Halo! Selamat datang kembali di **AiNews**. 👋\n\nSedang menghubungkan ke Google Spreadsheet...");
-        fetchGoogleSheetData();
-      } else {
-        isAwaitingApiKey = true;
-        updateStatus("Belum Terhubung", "#ef4444");
-        appendBotMessage("Halo! Selamat datang di **AiNews - TV Share Data Dashboard**. 👋\n\nUntuk memulai, silakan **masukkan Gemini API Key Anda** di kolom chat di bawah ini:");
-      }
-    };
+    <div class="stream" id="stream"></div>
+    <div class="suggest" id="suggest"></div>
 
-    function updateStatus(text, color) {
-      document.getElementById('statusText').textContent = text;
-      document.getElementById('statusDot').style.backgroundColor = color;
+    <div class="composer">
+      <div class="field">
+        <textarea id="input" rows="1" placeholder="Tanya apa saja tentang data TV Share…"></textarea>
+        <button class="send" id="send" onclick="send()" aria-label="Kirim">
+          <svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        </button>
+      </div>
+      <div class="hint">Enter kirim · Shift+Enter baris baru</div>
+    </div>
+  </aside>
+</div>
+
+<!-- SETTINGS -->
+<div class="veil" id="veil">
+  <div class="modal">
+    <h3 id="modalTitle">Pengaturan</h3>
+    <p class="lead" id="modalLead">Kunci API disimpan di browser ini saja dan tidak dikirim ke mana pun selain Google.</p>
+
+    <div class="f">
+      <label>Gemini API Key</label>
+      <input type="password" id="fKey" placeholder="AIza…" autocomplete="off">
+      <small>Ambil di <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>.</small>
+    </div>
+
+    <div class="f">
+      <label>Model</label>
+      <select id="fModel">
+        <option value="gemini-2.5-flash">gemini-2.5-flash — cepat, hemat</option>
+        <option value="gemini-2.5-pro">gemini-2.5-pro — analisis paling dalam</option>
+        <option value="gemini-2.0-flash">gemini-2.0-flash — cadangan stabil</option>
+        <option value="gemini-flash-latest">gemini-flash-latest — versi terbaru</option>
+      </select>
+      <small>Kalau model dipakai tidak tersedia di akun Anda, sistem otomatis pindah ke model lain yang aktif.</small>
+    </div>
+
+    <div class="f">
+      <label>ID Spreadsheet</label>
+      <input type="text" id="fSheet" placeholder="1vNI9Pgrm…">
+      <small>Sheet harus dibagikan sebagai “Siapa saja yang memiliki link — Viewer”.</small>
+    </div>
+
+    <div class="f">
+      <label>Nama tab sheet <span style="text-transform:none;letter-spacing:0;font-weight:500">(kosongkan untuk tab pertama)</span></label>
+      <input type="text" id="fTab" placeholder="Sheet1">
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn ghost" onclick="closeSettings()">Batal</button>
+      <button class="btn" onclick="wipeAll()">Hapus data tersimpan</button>
+      <button class="btn primary" onclick="saveSettings()">Simpan &amp; muat data</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   STATE
+============================================================ */
+const DEFAULT_SHEET = "1vNI9Pgrm99obZBoebpA8f4myU_Xw-4QScEAoJjeW9u8";
+const MODEL_FALLBACKS = ["gemini-2.5-flash","gemini-2.0-flash","gemini-flash-latest","gemini-2.5-pro"];
+
+const S = {
+  key:  localStorage.getItem('ai_key') || "",
+  model:localStorage.getItem('ai_model') || "gemini-2.5-flash",
+  sheet:localStorage.getItem('ai_sheet') || DEFAULT_SHEET,
+  tab:  localStorage.getItem('ai_tab') || "",
+  theme:localStorage.getItem('ai_theme') || "dark",
+  csv:"", headers:[], rows:[], profile:"", busy:false,
+  history:[], charts:[], dashboard:null
+};
+
+const STARTERS = [
+  "Buat dashboard performa TV Share",
+  "Bandingkan iNews dengan kompetitor",
+  "Tren share per minggu",
+  "Program dengan share tertinggi",
+  "Ringkas 5 temuan utama"
+];
+
+/* ============================================================
+   BOOT
+============================================================ */
+document.documentElement.dataset.theme = S.theme;
+document.getElementById('modelBadge').textContent = S.model;
+renderStarters();
+autoGrow();
+
+window.addEventListener('load', () => {
+  if (!S.key) {
+    setStatus("Perlu API key","warn");
+    bot("Selamat datang di **AiNews**.\n\nSaya membaca data TV Share langsung dari Google Spreadsheet, lalu menyusunnya jadi dashboard di panel kiri.\n\nSatu langkah dulu: **masukkan Gemini API Key**. Klik **Pengaturan** di kanan atas, atau tempel key-nya di kolom chat ini.");
+    setTimeout(openSettings, 700);
+  } else {
+    bot("Selamat datang kembali. Menarik data terbaru dari spreadsheet…");
+    loadSheet();
+  }
+});
+
+/* ============================================================
+   UI HELPERS
+============================================================ */
+function setStatus(text, kind){
+  document.getElementById('statusTxt').textContent = text;
+  document.getElementById('status').className = "onair" + (kind ? " "+kind : "");
+}
+function toast(msg, bad){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = "toast on" + (bad ? " bad" : "");
+  clearTimeout(t._t); t._t = setTimeout(()=>t.className="toast", 3200);
+}
+function setView(v, el){
+  document.body.dataset.view = v;
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+}
+function toggleTheme(){
+  S.theme = S.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = S.theme;
+  localStorage.setItem('ai_theme', S.theme);
+  if (S.dashboard) drawDashboard(S.dashboard);   // gambar ulang chart dengan warna tema baru
+}
+function renderStarters(){
+  const html = STARTERS.map(s=>`<button class="chip" onclick="quick(this)">${esc(s)}</button>`).join('');
+  document.getElementById('starterChips').innerHTML = html;
+  document.getElementById('suggest').innerHTML = STARTERS.slice(0,3).map(s=>`<button class="chip" onclick="quick(this)">${esc(s)}</button>`).join('');
+}
+function quick(el){ document.getElementById('input').value = el.textContent; send(); }
+function esc(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* settings modal */
+function openSettings(){
+  document.getElementById('fKey').value = S.key;
+  document.getElementById('fModel').value = S.model;
+  document.getElementById('fSheet').value = S.sheet;
+  document.getElementById('fTab').value = S.tab;
+  document.getElementById('veil').classList.add('on');
+}
+function closeSettings(){ document.getElementById('veil').classList.remove('on'); }
+function saveSettings(){
+  S.key   = document.getElementById('fKey').value.trim();
+  S.model = document.getElementById('fModel').value;
+  S.sheet = document.getElementById('fSheet').value.trim() || DEFAULT_SHEET;
+  S.tab   = document.getElementById('fTab').value.trim();
+  localStorage.setItem('ai_key',S.key); localStorage.setItem('ai_model',S.model);
+  localStorage.setItem('ai_sheet',S.sheet); localStorage.setItem('ai_tab',S.tab);
+  document.getElementById('modelBadge').textContent = S.model;
+  closeSettings();
+  if (!S.key){ setStatus("Perlu API key","warn"); toast("Kunci API masih kosong",true); return; }
+  toast("Pengaturan disimpan");
+  loadSheet();
+}
+function wipeAll(){
+  ['ai_key','ai_model','ai_sheet','ai_tab'].forEach(k=>localStorage.removeItem(k));
+  S.key=""; S.model="gemini-2.5-flash"; S.sheet=DEFAULT_SHEET; S.tab="";
+  openSettings(); setStatus("Perlu API key","warn"); toast("Data tersimpan dihapus");
+}
+document.getElementById('veil').addEventListener('click', e=>{ if(e.target.id==='veil') closeSettings(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeSettings(); });
+
+/* ============================================================
+   DATA: ambil sheet + profil data
+============================================================ */
+async function loadSheet(){
+  setStatus("Memuat data","warn");
+  try{
+    let url = `https://docs.google.com/spreadsheets/d/${S.sheet}/gviz/tq?tqx=out:csv`;
+    if (S.tab) url += `&sheet=${encodeURIComponent(S.tab)}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("HTTP "+res.status);
+    const text = await res.text();
+    if (/^\s*</.test(text)) throw new Error("akses ditolak");
+
+    S.csv = text;
+    const table = parseCSV(text);
+    S.headers = table.shift() || [];
+    S.rows = table.filter(r => r.some(c => String(c).trim() !== ""));
+    S.profile = profileData(S.headers, S.rows);
+
+    setStatus(`${S.rows.length} baris siap`,"ok");
+    fillTicker();
+    bot(`Data terbaca: **${S.rows.length} baris × ${S.headers.length} kolom**.\n\nKolom yang tersedia: ${S.headers.slice(0,8).map(h=>'`'+h+'`').join(', ')}${S.headers.length>8?' …':''}\n\nMau mulai dari mana?`);
+  }catch(err){
+    setStatus("Data gagal dimuat","");
+    bot("**Spreadsheet tidak bisa dibaca.**\n\nBuka sheet → Share → ubah akses jadi *Anyone with the link (Viewer)*. Kalau ID atau nama tab-nya berbeda, perbarui lewat **Pengaturan**.\n\nDetail: `"+err.message+"`");
+  }
+}
+
+function parseCSV(text){
+  const rows=[]; let row=[], cell="", q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){
+      if(c==='"'){ if(text[i+1]==='"'){cell+='"';i++;} else q=false; }
+      else cell+=c;
+    }else{
+      if(c==='"') q=true;
+      else if(c===','){ row.push(cell); cell=""; }
+      else if(c==='\n'){ row.push(cell); rows.push(row); row=[]; cell=""; }
+      else if(c!=='\r') cell+=c;
     }
+  }
+  if(cell!==""||row.length){ row.push(cell); rows.push(row); }
+  return rows;
+}
 
-    async function fetchGoogleSheetData() {
-      try {
-        updateStatus("Memuat Data...", "#f59e0b");
-        const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv`;
-        const response = await fetch(url);
-        
-        if (!response.ok) throw new Error("Gagal mengambil data");
-        
-        rawSheetData = await response.text();
-        updateStatus("Data Terhubung", "#10b981");
-        appendBotMessage("✅ **Data TV Share berhasil dimuat!**\n\nApa yang ingin Anda tampilkan hari ini? Coba ketik:\n👉 *'Tampilkan dashboard performa TV Share'*");
-      } catch (err) {
-        updateStatus("Gagal Memuat Data", "#ef4444");
-        appendBotMessage("⚠️ **Gagal terhubung ke Google Spreadsheet.** Pastikan akses sheet diset Publik (Viewer).");
-      }
+const toNum = v => {
+  if(v===null||v===undefined) return NaN;
+  const s = String(v).replace(/[%\s]/g,'').replace(/\.(?=\d{3}\b)/g,'').replace(',', '.');
+  return s==="" ? NaN : Number(s);
+};
+
+/* ringkasan statistik supaya jawaban model akurat, bukan tebakan */
+function profileData(headers, rows){
+  const lines=[];
+  headers.forEach((h,i)=>{
+    const vals = rows.map(r=>r[i]).filter(v=>String(v).trim()!=="");
+    if(!vals.length){ lines.push(`- "${h}": kosong`); return; }
+    const nums = vals.map(toNum).filter(n=>!isNaN(n));
+    if(nums.length / vals.length > 0.6){
+      const sum = nums.reduce((a,b)=>a+b,0);
+      lines.push(`- "${h}" (numerik): n=${nums.length}, min=${Math.min(...nums)}, max=${Math.max(...nums)}, rata2=${(sum/nums.length).toFixed(2)}, total=${sum.toFixed(2)}`);
+    }else{
+      const map={}; vals.forEach(v=>map[v]=(map[v]||0)+1);
+      const top = Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,10)
+        .map(([k,c])=>`${k} (${c})`).join(', ');
+      lines.push(`- "${h}" (kategori, ${Object.keys(map).length} unik): ${top}`);
     }
+  });
+  return lines.join('\n');
+}
 
-    async function sendMessage() {
-      const inputField = document.getElementById('userInput');
-      const userText = inputField.value.trim();
-      if (!userText) return;
-
-      appendUserMessage(userText);
-      inputField.value = '';
-
-      // MODUS 1: MENUNGGU INPUT API KEY VIA CHATBOT
-      if (isAwaitingApiKey) {
-        apiKey = userText;
-        localStorage.setItem('gemini_api_key', apiKey);
-        isAwaitingApiKey = false;
-        
-        appendBotMessage("🔑 **API Key berhasil disimpan!** Menghubungkan ke server data...");
-        await fetchGoogleSheetData();
-        return;
-      }
-
-      // MODUS 2: DITERIMA PERINTAH ANALISIS / CHAT REGULER
-      const botMsgElement = appendBotMessage("⏳ *Menganalisis data dan merancang tampilan...*");
-
-      if (!rawSheetData) {
-        botMsgElement.innerHTML = "⚠️ Data spreadsheet belum siap. Mencoba menghubungkan kembali...";
-        await fetchGoogleSheetData();
-        return;
-      }
-
-      const systemPrompt = `
-      Anda adalah "AiNews Bot", asisten analitik data TV Share internal iNews.
-      Berikut adalah raw data CSV dari pengguna:
-      --- DATA START ---
-      ${rawSheetData}
-      --- DATA END ---
-
-      Tugas:
-      1. Jawab pertanyaan pengguna secara akurat dan profesional.
-      2. Jika pengguna meminta DASHBOARD, VISUALISASI, GRAFIK, atau REKAPITULASI DATA, Anda WAJIB menyertakan JSON di AKHIR jawaban menggunakan penanda $$DASHBOARD_JSON.
-
-      Format JSON:
-      $$DASHBOARD_JSON
-      {
-        "title": "Judul Dashboard Analisis",
-        "kpis": [
-          {"title": "Total TV Share", "value": "15.4%"},
-          {"title": "Program Unggulan", "value": "iNews Prime"}
-        ],
-        "charts": [
-          {
-            "title": "Grafik Performa TV Share",
-            "type": "bar", // pilihan: bar, line, donut, area
-            "labels": ["iNews", "Channel A", "Channel B", "Channel C"],
-            "series": [{"name": "Share (%)", "data": [15.4, 12.1, 9.8, 7.5]}]
-          }
-        ]
-      }
-      $$DASHBOARD_JSON
-      `;
-
-      try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: systemPrompt }, { text: `Permintaan pengguna: ${userText}` }] }]
-          })
-        });
-
-        const data = await response.json();
-
-        if (data.error) {
-          botMsgElement.innerHTML = `⚠️ **Error API:** ${data.error.message}\n\nJika kunci tidak valid, klik tombol **Ganti API Key** di pojok kanan atas.`;
-          return;
-        }
-
-        const fullText = data.candidates[0].content.parts[0].text;
-        handleResponse(botMsgElement, fullText);
-
-      } catch (error) {
-        botMsgElement.innerHTML = "⚠️ Terjadi kesalahan koneksi ke server AI.";
-      }
+function fillTicker(){
+  const facts=[];
+  S.headers.forEach((h,i)=>{
+    const nums = S.rows.map(r=>toNum(r[i])).filter(n=>!isNaN(n));
+    if(nums.length > S.rows.length*0.6 && nums.length){
+      const avg = nums.reduce((a,b)=>a+b,0)/nums.length;
+      facts.push(`${h} rata-rata <b>${avg.toFixed(2)}</b>`);
+      facts.push(`${h} tertinggi <b>${Math.max(...nums)}</b>`);
     }
+  });
+  facts.unshift(`<b>${S.rows.length}</b> baris data aktif`);
+  facts.push(`Sumber <b>Google Spreadsheet</b>`);
+  facts.push(`Diperbarui <b>${new Date().toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'})}</b>`);
+  const one = facts.slice(0,10).map(f=>`<span>${f}</span>`).join('');
+  document.getElementById('tickerMove').innerHTML = one + one;
+}
 
-    function resetApiKey() {
-      localStorage.removeItem('gemini_api_key');
-      apiKey = "";
-      isAwaitingApiKey = true;
-      updateStatus("Belum Terhubung", "#ef4444");
-      appendBotMessage("🔑 **API Key telah di-reset.** Silakan masukkan Gemini API Key yang baru pada kolom chat di bawah ini:");
+/* ============================================================
+   CHAT
+============================================================ */
+const input = document.getElementById('input');
+input.addEventListener('keydown', e=>{
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); send(); }
+});
+input.addEventListener('input', autoGrow);
+function autoGrow(){ input.style.height='auto'; input.style.height=Math.min(input.scrollHeight,120)+'px'; }
+
+function me(text){
+  const s=document.getElementById('stream');
+  s.insertAdjacentHTML('beforeend',
+    `<div class="msg me"><div class="who">ME</div><div class="bubble">${esc(text)}</div></div>`);
+  s.scrollTop=s.scrollHeight;
+}
+function bot(md){
+  const s=document.getElementById('stream');
+  const d=document.createElement('div');
+  d.className='msg bot';
+  d.innerHTML=`<div class="who">AI</div><div class="bubble">${mdToHtml(md)}</div>`;
+  s.appendChild(d); s.scrollTop=s.scrollHeight;
+  return d.querySelector('.bubble');
+}
+function thinking(){
+  const b=bot("");
+  b.innerHTML=`<div class="typing"><i></i><i></i><i></i></div>`;
+  return b;
+}
+function clearChat(){
+  document.getElementById('stream').innerHTML='';
+  S.history=[];
+  bot("Percakapan dimulai ulang. Data spreadsheet tetap terhubung.");
+}
+
+function mdToHtml(md){
+  let h = esc(md);
+  h = h.replace(/```([\s\S]*?)```/g, (m,c)=>`<pre><code>${c.trim()}</code></pre>`);
+  h = h.replace(/^###\s+(.*)$/gm,'<h5>$1</h5>').replace(/^##\s+(.*)$/gm,'<h5>$1</h5>');
+  h = h.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+  h = h.replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<em>$2</em>');
+  h = h.replace(/`([^`\n]+)`/g,'<code>$1</code>');
+  h = h.replace(/^\s*[-•]\s+(.*)$/gm,'<li>$1</li>');
+  h = h.replace(/^\s*\d+\.\s+(.*)$/gm,'<li>$1</li>');
+  h = h.replace(/(<li>[\s\S]*?<\/li>)(?!\s*<li>)/g, m => m.includes('<ul>') ? m : '<ul>'+m+'</ul>');
+  h = h.replace(/<\/ul>\s*<ul>/g,'');
+  h = h.replace(/\n{2,}/g,'<br><br>').replace(/\n/g,'<br>');
+  h = h.replace(/<br>\s*(<ul>|<\/ul>|<h5>)/g,'$1');
+  return h;
+}
+
+async function send(){
+  const text = input.value.trim();
+  if(!text || S.busy) return;
+  me(text); input.value=''; autoGrow();
+
+  /* API key ditempel langsung di chat */
+  if(/^AIza[\w-]{20,}$/.test(text)){
+    S.key = text; localStorage.setItem('ai_key',S.key);
+    bot("Kunci API tersimpan. Menghubungkan ke spreadsheet…");
+    return loadSheet();
+  }
+  if(!S.key){ bot("Belum ada API key. Buka **Pengaturan** atau tempel key Gemini Anda di sini."); return openSettings(); }
+  if(!S.rows.length){ bot("Data belum siap. Saya coba muat ulang spreadsheet-nya."); return loadSheet(); }
+
+  S.busy=true; document.getElementById('send').disabled=true;
+  const bubble = thinking();
+  const wantsViz = /dashboard|visual|grafik|chart|diagram|rekap|ringkas|bandingkan|tren|trend|analis|performa|kpi|tabel/i.test(text);
+  if(wantsViz) showSkeleton();
+
+  try{
+    const reply = await askGemini(text);
+    const { prose, dash } = splitReply(reply);
+    bubble.innerHTML = mdToHtml(prose || "Dashboard sudah digambar di panel kiri.");
+    if(dash){
+      drawDashboard(dash);
+      bubble.insertAdjacentHTML('beforeend','<div class="tagline">▲ Dashboard diperbarui</div>');
+      if(window.innerWidth<=900) toast("Dashboard siap — buka tab Dashboard");
+    } else if(wantsViz){
+      restoreCanvas();
     }
+    S.history.push({role:'user',text}, {role:'model',text:reply});
+    if(S.history.length>12) S.history = S.history.slice(-12);
+  }catch(err){
+    bubble.innerHTML = mdToHtml("**Permintaan gagal.** "+err.message+"\n\nCek kunci API dan koneksi, lalu coba lagi.");
+    restoreCanvas(); toast("Permintaan ke Gemini gagal",true);
+  }finally{
+    S.busy=false; document.getElementById('send').disabled=false;
+    document.getElementById('stream').scrollTop = 1e9;
+  }
+}
 
-    function appendUserMessage(text) {
-      const chatBox = document.getElementById('chatBox');
-      const div = document.createElement('div');
-      div.className = 'message user';
-      div.textContent = text;
-      chatBox.appendChild(div);
-      chatBox.scrollTop = chatBox.scrollHeight;
+/* ============================================================
+   GEMINI
+============================================================ */
+function buildPrompt(){
+  const sample = S.csv.length > 45000 ? S.csv.slice(0,45000)+"\n…(dipotong)" : S.csv;
+  return `Kamu "AiNews Bot", analis data TV Share untuk redaksi iNews. Jawab dalam Bahasa Indonesia yang ringkas, tegas, dan berbasis angka.
+
+RINGKASAN KOLOM (sudah dihitung dari data asli, gunakan sebagai acuan):
+${S.profile}
+
+DATA CSV:
+--- MULAI ---
+${sample}
+--- SELESAI ---
+
+ATURAN
+1. Semua angka WAJIB berasal dari data di atas. Kalau informasi tidak ada, katakan tidak tersedia — jangan mengarang.
+2. Jawab persis yang ditanya. Pertanyaan singkat dijawab singkat; jangan tempelkan dashboard kalau tidak diminta atau tidak relevan.
+3. Jawaban teks maksimal 6 kalimat atau 6 poin. Sebutkan angka konkret, bukan kesan umum.
+4. Kalau pengguna minta dashboard, visualisasi, grafik, rekap, perbandingan, tren, atau analisis performa: tulis jawaban teks singkat, LALU lampirkan satu blok JSON di paling akhir dengan penanda $$DASH.
+
+FORMAT BLOK (JSON valid, tanpa komentar, tanpa markdown fence):
+$$DASH
+{
+  "title": "Judul dashboard",
+  "subtitle": "Satu kalimat konteks: periode, sumber, cakupan",
+  "kpis": [
+    {"label":"Share iNews","value":"15,4%","delta":"+1,2 pts","trend":"up","note":"vs periode lalu"}
+  ],
+  "charts": [
+    {
+      "title":"Share per channel",
+      "subtitle":"Opsional, satu kalimat",
+      "type":"bar",
+      "span":"full",
+      "labels":["iNews","Kompas TV","tvOne"],
+      "series":[{"name":"Share (%)","data":[15.4,12.1,9.8]}],
+      "suffix":"%"
     }
+  ],
+  "insights":[{"title":"Judul temuan","text":"Penjelasan dengan angka."}],
+  "table":{"title":"Rincian","columns":["Channel","Share"],"rows":[["iNews","15,4"]]}
+}
+$$DASH
 
-    function appendBotMessage(text) {
-      const chatBox = document.getElementById('chatBox');
-      const div = document.createElement('div');
-      div.className = 'message bot';
-      div.innerHTML = formatMarkdown(text);
-      chatBox.appendChild(div);
-      chatBox.scrollTop = chatBox.scrollHeight;
-      return div;
+KETENTUAN BLOK
+- type: bar | column | line | area | donut | pie | radar | scatter. Pakai "donut"/"pie" hanya untuk komposisi 1 seri.
+- span: "full" (selebar panel) atau "half". Maksimal 4 grafik, 5 KPI, 5 insight, 12 baris tabel.
+- Untuk donut/pie, "series" berupa array angka: "series":[15.4,12.1,9.8].
+- trend: "up" | "down" | "flat". Hilangkan "delta"/"note" bila tidak ada pembanding di data.
+- Bagian "insights" dan "table" opsional. Kalau tidak ada dashboard yang perlu digambar, jangan tulis $$DASH sama sekali.`;
+}
+
+async function askGemini(userText){
+  const contents = [];
+  S.history.forEach(h => contents.push({role:h.role, parts:[{text:h.text}]}));
+  contents.push({role:'user', parts:[{text:userText}]});
+
+  const body = {
+    system_instruction:{ parts:[{text:buildPrompt()}] },
+    contents,
+    generationConfig:{ temperature:0.35, topP:0.9, maxOutputTokens:3000 }
+  };
+
+  const models = [S.model, ...MODEL_FALLBACKS.filter(m=>m!==S.model)];
+  let lastErr = "Model tidak tersedia.";
+
+  for(const model of models){
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(S.key)}`,{
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
+    });
+    const data = await res.json().catch(()=>({}));
+
+    if(data.error){
+      lastErr = data.error.message || "Gagal.";
+      if(/not found|not supported|unsupported|does not exist/i.test(lastErr)) continue; // coba model lain
+      throw new Error(lastErr);
     }
+    const parts = data?.candidates?.[0]?.content?.parts || [];
+    const text = parts.map(p=>p.text||"").join("").trim();
+    if(!text){ lastErr = "Model tidak mengembalikan teks."; continue; }
 
-    function formatMarkdown(text) {
-      return text
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        .replace(/\n/g, '<br>');
+    if(model !== S.model){
+      S.model = model; localStorage.setItem('ai_model',model);
+      document.getElementById('modelBadge').textContent = model;
+      toast("Beralih ke model "+model);
     }
+    return text;
+  }
+  throw new Error(lastErr);
+}
 
-    function handleResponse(botElement, text) {
-      const jsonMatch = text.match(/\$\$DASHBOARD_JSON\s*([\s\S]*?)\s*\$\$DASHBOARD_JSON/);
-      let textOnly = text;
-
-      if (jsonMatch) {
-        textOnly = text.replace(jsonMatch[0], '').trim();
-      }
-
-      botElement.innerHTML = formatMarkdown(textOnly || "Dashboard baru telah dibuat di panel utama!");
-
-      if (jsonMatch && jsonMatch[1]) {
-        renderDashboard(jsonMatch[1]);
-      }
+/* pisahkan prosa dan blok JSON */
+function splitReply(text){
+  let prose = text, raw = null;
+  const m1 = text.match(/\$\$DASH(?:BOARD_JSON)?\s*([\s\S]*?)\s*\$\$DASH(?:BOARD_JSON)?/);
+  if(m1){ raw = m1[1]; prose = text.replace(m1[0],'').trim(); }
+  else{
+    const m2 = text.match(/\$\$DASH(?:BOARD_JSON)?\s*([\s\S]*)$/);
+    if(m2){ raw = m2[1]; prose = text.replace(m2[0],'').trim(); }
+    else{
+      const m3 = text.match(/```json\s*([\s\S]*?)```/);
+      if(m3 && /"charts"|"kpis"/.test(m3[1])){ raw = m3[1]; prose = text.replace(m3[0],'').trim(); }
     }
+  }
+  if(!raw) return { prose, dash:null };
 
-    function renderDashboard(jsonString) {
-      try {
-        const dashData = JSON.parse(jsonString);
-        const dashContainer = document.getElementById('dashboardContent');
-        const dashTitle = document.getElementById('dashTitle');
+  raw = raw.replace(/```json|```/g,'').trim();
+  const a = raw.indexOf('{'), b = raw.lastIndexOf('}');
+  if(a<0||b<0) return { prose, dash:null };
+  try{ return { prose, dash: JSON.parse(raw.slice(a,b+1)) }; }
+  catch(e){ console.warn('JSON dashboard tidak valid:',e); return { prose, dash:null }; }
+}
 
-        dashContainer.innerHTML = ''; // Clear empty state atau dashboard lama
+/* ============================================================
+   DASHBOARD RENDER
+============================================================ */
+function showSkeleton(){
+  document.getElementById('content').innerHTML =
+    `<div class="skeleton">
+       <div class="sk" style="height:96px"></div>
+       <div class="sk" style="height:300px"></div>
+       <div class="sk" style="height:220px"></div>
+     </div>`;
+}
+function restoreCanvas(){
+  if(S.dashboard) drawDashboard(S.dashboard);
+  else{
+    document.getElementById('content').innerHTML =
+      `<div class="empty">
+         <div class="bars"><i></i><i></i><i></i><i></i><i></i></div>
+         <h3>Belum ada yang digambar</h3>
+         <p>Minta rekap, perbandingan, atau tren — hasilnya muncul di sini.</p>
+         <div class="chips" id="starterChips"></div>
+       </div>`;
+    renderStarters();
+  }
+}
 
-        if (dashData.title) dashTitle.textContent = dashData.title;
+const PALETTE = ['#FF3B47','#3DD6F5','#FFB020','#38E1A4','#9B8CFF','#F97316','#22D3EE','#E879F9'];
 
-        // 1. RENDER KPI CARDS
-        if (dashData.kpis && dashData.kpis.length > 0) {
-          const kpiGrid = document.createElement('div');
-          kpiGrid.className = 'kpi-grid';
+function drawDashboard(d){
+  S.dashboard = d;
+  S.charts.forEach(c=>{ try{c.destroy();}catch(e){} });
+  S.charts = [];
 
-          dashData.kpis.forEach(kpi => {
-            const card = document.createElement('div');
-            card.className = 'kpi-card';
-            card.innerHTML = `<div class="kpi-title">${kpi.title}</div><div class="kpi-value">${kpi.value}</div>`;
-            kpiGrid.appendChild(card);
-          });
-          dashContainer.appendChild(kpiGrid);
-        }
+  document.getElementById('dashTitle').textContent = d.title || "Analisis TV Share";
+  document.getElementById('dashSub').textContent   = d.subtitle || "Disusun otomatis dari data spreadsheet.";
+  document.getElementById('eyebrow').textContent   = new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
-        // 2. RENDER APEXCHARTS (DENGAN DATA LABELS AKTIF)
-        if (dashData.charts && dashData.charts.length > 0) {
-          const chartsGrid = document.createElement('div');
-          chartsGrid.className = 'charts-grid';
+  const box = document.getElementById('content');
+  box.innerHTML = '';
 
-          dashData.charts.forEach(chartData => {
-            const chartDiv = document.createElement('div');
-            chartDiv.className = 'chart-box';
-            const chartId = 'chart-' + Math.random().toString(36).substr(2, 9);
+  /* KPI */
+  if(Array.isArray(d.kpis) && d.kpis.length){
+    const g = document.createElement('div'); g.className='kpis';
+    d.kpis.slice(0,5).forEach(k=>{
+      const tr = (k.trend||'flat').toLowerCase();
+      const arrow = tr==='up'?'▲':tr==='down'?'▼':'—';
+      const el = document.createElement('div'); el.className='kpi';
+      el.innerHTML =
+        `<div class="kpi-label">${esc(k.label||k.title||'')}</div>
+         <div class="kpi-val">${esc(k.value ?? '-')}</div>
+         ${(k.delta||k.note) ? `<div class="kpi-foot">
+            ${k.delta?`<span class="delta ${tr}">${arrow} ${esc(k.delta)}</span>`:''}
+            ${k.note?`<span>${esc(k.note)}</span>`:''}
+          </div>`:''}`;
+      g.appendChild(el);
+    });
+    box.appendChild(g);
+  }
 
-            chartDiv.innerHTML = `<div class="chart-title">${chartData.title}</div><div id="${chartId}"></div>`;
-            chartsGrid.appendChild(chartDiv);
+  /* CHARTS */
+  if(Array.isArray(d.charts) && d.charts.length){
+    const grid = document.createElement('div'); grid.className='charts';
+    d.charts.slice(0,4).forEach((c,i)=>{
+      const card = document.createElement('div');
+      card.className = 'card' + ((c.span==='full' || d.charts.length===1) ? ' full' : '');
+      card.style.animationDelay = (i*0.07)+'s';
+      const id = 'cv'+i+'_'+Date.now();
+      card.innerHTML =
+        `<div class="card-head">
+           <div class="card-title">${esc(c.title||'Grafik')}</div>
+           <div class="card-note">${esc(c.note || (c.suffix==='%'?'satuan %':''))}</div>
+         </div>
+         ${c.subtitle?`<div class="card-sub">${esc(c.subtitle)}</div>`:''}
+         <div id="${id}"></div>`;
+      grid.appendChild(card);
+      setTimeout(()=>mountChart(id,c),40);
+    });
+    box.appendChild(grid);
+  }
 
-            setTimeout(() => {
-              const options = {
-                series: chartData.series,
-                chart: { type: chartData.type || 'bar', height: 350, fontFamily: 'Inter, sans-serif', toolbar: { show: true } },
-                colors: ['#2563eb', '#38bdf8', '#fbbf24', '#f43f5e', '#8b5cf6'],
-                xaxis: { categories: chartData.labels },
-                // DATA LABELS SELALU DITAMPILKAN SECARA PRESISI & JELAS DIBACA
-                dataLabels: {
-                  enabled: true,
-                  style: { fontSize: '11px', fontWeight: '600' },
-                  background: { enabled: true, foreColor: '#0f172a', padding: 4, borderRadius: 3, borderWidth: 1, borderColor: '#cbd5e1' }
-                },
-                stroke: { curve: 'smooth', width: 2 },
-                grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
-                theme: { mode: 'light' }
-              };
-              new ApexCharts(document.getElementById(chartId), options).render();
-            }, 100);
-          });
+  /* INSIGHTS */
+  if(Array.isArray(d.insights) && d.insights.length){
+    const w = document.createElement('div'); w.className='insights';
+    w.innerHTML = `<h4>Catatan temuan</h4>` + d.insights.slice(0,5).map((it,i)=>{
+      const title = typeof it==='string' ? '' : (it.title||'');
+      const body  = typeof it==='string' ? it : (it.text||it.desc||'');
+      return `<div class="ins"><div class="idx">${String(i+1).padStart(2,'0')}</div>
+        <div class="ins-body">${title?`<strong>${esc(title)}</strong>`:''}<p>${esc(body)}</p></div></div>`;
+    }).join('');
+    box.appendChild(w);
+  }
 
-          dashContainer.appendChild(chartsGrid);
-        }
-      } catch (e) {
-        console.error('Gagal merender UI Dashboard:', e);
-      }
-    }
-  </script>
+  /* TABLE */
+  const t = d.table;
+  if(t && Array.isArray(t.columns) && Array.isArray(t.rows) && t.rows.length){
+    const w = document.createElement('div'); w.className='tablewrap';
+    const head = t.columns.map(c=>`<th>${esc(c)}</th>`).join('');
+    const body = t.rows.slice(0,12).map(r=>
+      '<tr>'+r.map((v,i)=>`<td class="${i>0 && !isNaN(toNum(v))?'num':''}">${esc(v)}</td>`).join('')+'</tr>').join('');
+    w.innerHTML = `<h4>${esc(t.title||'Rincian data')}</h4><div class="scrollx"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+    box.appendChild(w);
+  }
+
+  document.querySelector('.canvas-wrap').scrollTop = 0;
+}
+
+function mountChart(id, c){
+  const el = document.getElementById(id); if(!el) return;
+  const dark = S.theme === 'dark';
+  const txt  = dark ? '#A7B6D4' : '#4A5A78';
+  let type = (c.type||'bar').toLowerCase();
+  const horizontal = type === 'bar' && (c.horizontal === true);
+  if(type === 'column') type = 'bar';
+
+  const pie = type==='donut' || type==='pie';
+  let series = c.series;
+  if(pie){
+    series = Array.isArray(c.series) && typeof c.series[0]==='object'
+      ? (c.series[0].data||[]) : (c.series||[]);
+    series = series.map(v => Number(v)||0);
+  }else if(Array.isArray(series) && typeof series[0]==='number'){
+    series = [{name:c.name||'Nilai', data:series}];
+  }
+
+  const suffix = c.suffix || '';
+  const opt = {
+    series,
+    chart:{
+      type, height: c.height || (pie?330:330), fontFamily:"'Inter Tight',sans-serif",
+      background:'transparent', foreColor:txt,
+      toolbar:{show:true, tools:{download:true,selection:false,zoom:false,pan:false,reset:false}},
+      animations:{easing:'easeinout', speed:600}
+    },
+    theme:{ mode: dark?'dark':'light' },
+    colors: PALETTE,
+    dataLabels:{
+      enabled:true,
+      formatter: v => pie ? (Number(v).toFixed(1)+'%') : (v===null?'':fmt(v)+suffix),
+      style:{ fontSize:'11px', fontWeight:700, fontFamily:"'JetBrains Mono',monospace",
+              colors:[type==='line'||type==='area'? txt : (dark?'#0A0F1C':'#FFFFFF')] },
+      background: (type==='line'||type==='area')
+        ? { enabled:true, foreColor: dark?'#E9EEF9':'#0E1626', borderRadius:4, padding:4,
+            borderWidth:1, borderColor: dark?'#243350':'#DCE3F0', opacity:.95 }
+        : { enabled:false },
+      offsetY: type==='bar' && !horizontal ? -18 : 0
+    },
+    plotOptions:{
+      bar:{ horizontal, borderRadius:5, columnWidth:'56%', barHeight:'62%', dataLabels:{position:'top'} },
+      pie:{ donut:{ size:'62%', labels:{ show:true, total:{ show:true, label:'Total', fontFamily:"'Bricolage Grotesque',sans-serif" } } } }
+    },
+    stroke:{ curve:'smooth', width: (type==='line'?3 : type==='area'?2 : pie?2:0),
+             colors: pie ? [dark?'#121A2B':'#fff'] : undefined },
+    fill:{ opacity: type==='area'?0.18:1 },
+    markers:{ size: type==='line'?4:0, strokeWidth:2, hover:{size:6} },
+    labels: pie ? (c.labels||[]) : undefined,
+    xaxis: pie ? undefined : {
+      categories: c.labels||[],
+      labels:{ style:{fontSize:'11.5px'}, rotate:-35, rotateAlways:false, trim:true, hideOverlappingLabels:true },
+      axisBorder:{ color: dark?'#243350':'#DCE3F0' }, axisTicks:{ show:false }
+    },
+    yaxis: pie ? undefined : { labels:{ formatter: v=>fmt(v)+suffix, style:{fontSize:'11.5px'} } },
+    grid:{ borderColor: dark?'rgba(255,255,255,.07)':'rgba(10,20,40,.08)', strokeDashArray:4,
+           padding:{ top:0, right:8, bottom:0, left:4 } },
+    legend:{ position:'bottom', horizontalAlign:'center', fontSize:'12px', markers:{radius:4},
+             itemMargin:{horizontal:10,vertical:4} },
+    tooltip:{ theme: dark?'dark':'light', y:{ formatter: v=> fmt(v)+suffix } },
+    noData:{ text:'Tidak ada data untuk grafik ini', style:{ color:txt } },
+    responsive:[{ breakpoint:640, options:{ chart:{height:300}, dataLabels:{enabled:false}, xaxis:{labels:{rotate:-45}} } }]
+  };
+
+  try{
+    const ch = new ApexCharts(el, opt);
+    ch.render(); S.charts.push(ch);
+  }catch(e){ el.innerHTML = '<p style="color:var(--txt-dim);font-size:13px;padding:20px 0">Grafik tidak bisa digambar.</p>'; }
+}
+
+const fmt = v => {
+  const n = Number(v);
+  if(isNaN(n)) return v;
+  return Number.isInteger(n) ? n.toLocaleString('id-ID') : n.toFixed(2).replace('.',',');
+};
+
+/* ============================================================
+   EXPORT PNG
+============================================================ */
+async function exportDashboard(){
+  if(!S.dashboard){ toast("Belum ada dashboard untuk diunduh",true); return; }
+  const btn = document.getElementById('btnExport');
+  const label = btn.querySelector('.label'); const old = label ? label.textContent : '';
+  if(label) label.textContent = "Menyiapkan…";
+  btn.disabled = true;
+  try{
+    const node = document.getElementById('canvas');
+    const bg = getComputedStyle(document.body).backgroundColor;
+    const cv = await html2canvas(node,{ backgroundColor:bg, scale:2, useCORS:true, logging:false,
+                                        windowWidth: node.scrollWidth, windowHeight: node.scrollHeight });
+    const a = document.createElement('a');
+    a.download = `AiNews-Dashboard-${new Date().toISOString().slice(0,10)}.png`;
+    a.href = cv.toDataURL('image/png');
+    a.click();
+    toast("Gambar dashboard terunduh");
+  }catch(e){
+    toast("Gagal membuat gambar",true);
+  }finally{
+    if(label) label.textContent = old; btn.disabled = false;
+  }
+}
+</script>
 </body>
 </html>
