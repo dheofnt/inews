@@ -989,6 +989,10 @@ function restoreCanvas(){
 
 const PALETTE = ['#FF3B47','#3DD6F5','#FFB020','#38E1A4','#9B8CFF','#F97316','#22D3EE','#E879F9'];
 
+/* Ukuran angka di atas bar / titik garis / persentase donut.
+   Semula 11px — diturunkan 50%. Naikkan nilai ini kalau terasa terlalu kecil. */
+const DATA_LABEL_PX = 5.5;
+
 function drawDashboard(d){
   S.dashboard = d;
   S.charts.forEach(c=>{ try{c.destroy();}catch(e){} });
@@ -1099,13 +1103,13 @@ function mountChart(id, c){
     dataLabels:{
       enabled:true,
       formatter: v => pie ? (Number(v).toFixed(1)+'%') : (v===null?'':fmt(v)+suffix),
-      style:{ fontSize:'11px', fontWeight:700, fontFamily:"'JetBrains Mono',monospace",
+      style:{ fontSize:DATA_LABEL_PX+'px', fontWeight:700, fontFamily:"'JetBrains Mono',monospace",
               colors:[type==='line'||type==='area'? txt : (dark?'#0A0F1C':'#FFFFFF')] },
       background: (type==='line'||type==='area')
-        ? { enabled:true, foreColor: dark?'#E9EEF9':'#0E1626', borderRadius:4, padding:4,
+        ? { enabled:true, foreColor: dark?'#E9EEF9':'#0E1626', borderRadius:2, padding:2,
             borderWidth:1, borderColor: dark?'#243350':'#DCE3F0', opacity:.95 }
         : { enabled:false },
-      offsetY: type==='bar' && !horizontal ? -18 : 0
+      offsetY: type==='bar' && !horizontal ? -10 : 0
     },
     plotOptions:{
       bar:{ horizontal, borderRadius:5, columnWidth:'56%', barHeight:'62%', dataLabels:{position:'top'} },
@@ -1128,7 +1132,7 @@ function mountChart(id, c){
              itemMargin:{horizontal:10,vertical:4} },
     tooltip:{ theme: dark?'dark':'light', y:{ formatter: v=> fmt(v)+suffix } },
     noData:{ text:'Tidak ada data untuk grafik ini', style:{ color:txt } },
-    responsive:[{ breakpoint:640, options:{ chart:{height:300}, dataLabels:{enabled:false}, xaxis:{labels:{rotate:-45}} } }]
+    responsive:[{ breakpoint:640, options:{ chart:{height:300}, xaxis:{labels:{rotate:-45}} } }]
   };
 
   try{
