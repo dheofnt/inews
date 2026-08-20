@@ -92,6 +92,10 @@ button,input,textarea,select{font-family:inherit;color:inherit}
 .canvas{padding:22px 26px 60px;max-width:1400px;margin:0 auto}
 
 .canvas-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:6px}
+.tabpick{display:flex;flex-direction:column;gap:6px;flex:none}
+.tabpick label{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--txt-dim);font-weight:700}
+.tabpick select{padding:9px 12px;border-radius:10px;background:var(--panel);border:1px solid var(--line);font-size:13px;font-weight:600;outline:none;cursor:pointer;min-width:180px}
+.tabpick select:focus{border-color:var(--signal);box-shadow:0 0 0 3px var(--signal-soft)}
 .eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--signal);font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px}
 .eyebrow::before{content:"";width:22px;height:2px;background:var(--signal);display:block}
 h1.title{font-family:var(--display);font-size:clamp(23px,3vw,34px);font-weight:800;letter-spacing:-1px;line-height:1.08}
@@ -355,6 +359,10 @@ td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
           <h1 class="title" id="dashTitle">Belum ada dashboard</h1>
           <p class="subtitle" id="dashSub">Minta apa pun ke asisten di panel kanan — rekap share, perbandingan channel, tren mingguan, program terkuat — dan hasilnya digambar di sini.</p>
         </div>
+        <div class="tabpick" id="tabPick" hidden>
+          <label for="tabSelect">Tab aktif</label>
+          <select id="tabSelect" onchange="pickTab(this.value)"></select>
+        </div>
       </div>
 
       <div class="ticker">
@@ -424,14 +432,15 @@ td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
     </div>
 
     <div class="f">
-      <label>ID Spreadsheet</label>
-      <input type="text" id="fSheet" placeholder="1vNI9Pgrm…">
-      <small>Sheet harus dibagikan sebagai “Siapa saja yang memiliki link — Viewer”.</small>
+      <label>URL Web App (Apps Script)</label>
+      <input type="text" id="fUrl" placeholder="https://script.google.com/macros/s/…/exec">
+      <small>Alamat deployment Apps Script, berakhiran <code>/exec</code>.</small>
     </div>
 
     <div class="f">
-      <label>Nama tab sheet <span style="text-transform:none;letter-spacing:0;font-weight:500">(kosongkan untuk tab pertama)</span></label>
-      <input type="text" id="fTab" placeholder="Sheet1">
+      <label>Token</label>
+      <input type="password" id="fToken" placeholder="token dari Code.gs" autocomplete="off">
+      <small>Harus sama persis dengan nilai <code>TOKEN</code> di baris pertama skrip.</small>
     </div>
 
     <div class="modal-foot">
@@ -448,16 +457,19 @@ td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
 /* ============================================================
    STATE
 ============================================================ */
-const DEFAULT_SHEET = "1vNI9Pgrm99obZBoebpA8f4myU_Xw-4QScEAoJjeW9u8";
+const DEFAULT_URL = "";
 const MODEL_FALLBACKS = ["gemini-2.5-flash","gemini-2.0-flash","gemini-flash-latest","gemini-2.5-pro"];
 
 const S = {
   key:  localStorage.getItem('ai_key') || "",
   model:localStorage.getItem('ai_model') || "gemini-2.5-flash",
-  sheet:localStorage.getItem('ai_sheet') || DEFAULT_SHEET,
-  tab:  localStorage.getItem('ai_tab') || "",
+  url:  localStorage.getItem('ai_url') || DEFAULT_URL,
+  token:localStorage.getItem('ai_token') || "",
   theme:localStorage.getItem('ai_theme') || "dark",
-  csv:"", headers:[], rows:[], profile:"", busy:false,
+  catalog:[],        // [{name, rows, columns}]
+  loaded:{},         // cache isi tab: { namaTab: {headers, rows, csv, profile} }
+  active:"",         // tab yang sedang tampil di pemilih
+  busy:false,
   history:[], charts:[], dashboard:null
 };
 
@@ -469,24 +481,7 @@ const STARTERS = [
   "Ringkas 5 temuan utama"
 ];
 
-/* ============================================================
-   BOOT
-============================================================ */
-document.documentElement.dataset.theme = S.theme;
-document.getElementById('modelBadge').textContent = S.model;
-renderStarters();
-autoGrow();
-
-window.addEventListener('load', () => {
-  if (!S.key) {
-    setStatus("Perlu API key","warn");
-    bot("Selamat datang di **AiNews**.\n\nSaya membaca data TV Share langsung dari Google Spreadsheet, lalu menyusunnya jadi dashboard di panel kiri.\n\nSatu langkah dulu: **masukkan Gemini API Key**. Klik **Pengaturan** di kanan atas, atau tempel key-nya di kolom chat ini.");
-    setTimeout(openSettings, 700);
-  } else {
-    bot("Selamat datang kembali. Menarik data terbaru dari spreadsheet…");
-    loadSheet();
-  }
-});
+/* Boot dijalankan di baris paling bawah file — lihat init(). */
 
 /* ============================================================
    UI HELPERS
@@ -519,62 +514,130 @@ function renderStarters(){
 function quick(el){ document.getElementById('input').value = el.textContent; send(); }
 function esc(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+/* Angka: "15,4" / "15.4" / "1.234" / "12%" -> Number. Function declaration supaya
+   bisa dipakai fungsi mana pun tanpa tergantung urutan baris. */
+function toNum(v){
+  if(v===null||v===undefined) return NaN;
+  const s = String(v).replace(/[%\s]/g,'').replace(/\.(?=\d{3}\b)/g,'').replace(',', '.');
+  return s==="" ? NaN : Number(s);
+}
+function fmt(v){
+  const n = Number(v);
+  if(isNaN(n)) return v;
+  return Number.isInteger(n) ? n.toLocaleString('id-ID') : n.toFixed(2).replace('.',',');
+}
+
 /* settings modal */
 function openSettings(){
   document.getElementById('fKey').value = S.key;
   document.getElementById('fModel').value = S.model;
-  document.getElementById('fSheet').value = S.sheet;
-  document.getElementById('fTab').value = S.tab;
+  document.getElementById('fUrl').value = S.url;
+  document.getElementById('fToken').value = S.token;
   document.getElementById('veil').classList.add('on');
 }
 function closeSettings(){ document.getElementById('veil').classList.remove('on'); }
 function saveSettings(){
   S.key   = document.getElementById('fKey').value.trim();
   S.model = document.getElementById('fModel').value;
-  S.sheet = document.getElementById('fSheet').value.trim() || DEFAULT_SHEET;
-  S.tab   = document.getElementById('fTab').value.trim();
+  S.url   = document.getElementById('fUrl').value.trim().replace(/\?.*$/,'');
+  S.token = document.getElementById('fToken').value.trim();
   localStorage.setItem('ai_key',S.key); localStorage.setItem('ai_model',S.model);
-  localStorage.setItem('ai_sheet',S.sheet); localStorage.setItem('ai_tab',S.tab);
+  localStorage.setItem('ai_url',S.url); localStorage.setItem('ai_token',S.token);
   document.getElementById('modelBadge').textContent = S.model;
   closeSettings();
   if (!S.key){ setStatus("Perlu API key","warn"); toast("Kunci API masih kosong",true); return; }
+  if (!S.url){ setStatus("Perlu URL Web App","warn"); toast("URL Web App masih kosong",true); return; }
   toast("Pengaturan disimpan");
-  loadSheet();
+  S.loaded = {}; S.catalog = [];
+  loadCatalog();
 }
 function wipeAll(){
-  ['ai_key','ai_model','ai_sheet','ai_tab'].forEach(k=>localStorage.removeItem(k));
-  S.key=""; S.model="gemini-2.5-flash"; S.sheet=DEFAULT_SHEET; S.tab="";
+  ['ai_key','ai_model','ai_url','ai_token'].forEach(k=>localStorage.removeItem(k));
+  S.key=""; S.model="gemini-2.5-flash"; S.url=""; S.token="";
+  S.catalog=[]; S.loaded={};
   openSettings(); setStatus("Perlu API key","warn"); toast("Data tersimpan dihapus");
 }
 document.getElementById('veil').addEventListener('click', e=>{ if(e.target.id==='veil') closeSettings(); });
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeSettings(); });
 
 /* ============================================================
-   DATA: ambil sheet + profil data
+   DATA: katalog tab + isi tab (Apps Script Web App)
 ============================================================ */
-async function loadSheet(){
-  setStatus("Memuat data","warn");
+function apiUrl(params){
+  const q = new URLSearchParams({ token:S.token, ...params });
+  return `${S.url}?${q.toString()}`;
+}
+
+/* Langkah 1: tarik daftar semua tab. Ringan — hanya nama, jumlah baris, kolom. */
+async function loadCatalog(){
+  if(!S.url){ setStatus("Perlu URL Web App","warn"); return; }
+  setStatus("Membaca daftar tab","warn");
   try{
-    let url = `https://docs.google.com/spreadsheets/d/${S.sheet}/gviz/tq?tqx=out:csv`;
-    if (S.tab) url += `&sheet=${encodeURIComponent(S.tab)}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("HTTP "+res.status);
-    const text = await res.text();
-    if (/^\s*</.test(text)) throw new Error("akses ditolak");
+    const res = await fetch(apiUrl({mode:'catalog'}), {redirect:'follow'});
+    const raw = await res.text();
+    if(/^\s*</.test(raw)) throw new Error("Google mengembalikan halaman HTML, bukan JSON — akses deployment kemungkinan bukan 'Anyone'");
+    const data = JSON.parse(raw);
+    if(data.error) throw new Error(data.error);
 
-    S.csv = text;
-    const table = parseCSV(text);
-    S.headers = table.shift() || [];
-    S.rows = table.filter(r => r.some(c => String(c).trim() !== ""));
-    S.profile = profileData(S.headers, S.rows);
+    S.catalog = (data.tabs||[]).filter(t => t.rows > 0);
+    if(!S.catalog.length) throw new Error("Tidak ada tab berisi data");
 
-    setStatus(`${S.rows.length} baris siap`,"ok");
+    fillTabPicker();
+    const total = S.catalog.reduce((a,t)=>a+t.rows,0);
+    setStatus(`${S.catalog.length} tab · ${total} baris`,"ok");
     fillTicker();
-    bot(`Data terbaca: **${S.rows.length} baris × ${S.headers.length} kolom**.\n\nKolom yang tersedia: ${S.headers.slice(0,8).map(h=>'`'+h+'`').join(', ')}${S.headers.length>8?' …':''}\n\nMau mulai dari mana?`);
+
+    const list = S.catalog.slice(0,8).map(t=>`• **${t.name}** — ${t.rows} baris`).join('\n');
+    bot(`Terhubung ke **${data.title||'spreadsheet'}**.\n\n${S.catalog.length} tab terbaca:\n${list}${S.catalog.length>8?'\n• …':''}\n\nSaya ambil isi tab yang relevan otomatis begitu Anda bertanya.`);
+
+    /* muat satu tab pertama supaya dashboard bisa langsung dipakai */
+    await fetchTab(S.catalog[0].name);
   }catch(err){
-    setStatus("Data gagal dimuat","");
-    bot("**Spreadsheet tidak bisa dibaca.**\n\nBuka sheet → Share → ubah akses jadi *Anyone with the link (Viewer)*. Kalau ID atau nama tab-nya berbeda, perbarui lewat **Pengaturan**.\n\nDetail: `"+err.message+"`");
+    setStatus("Gagal terhubung","");
+    bot("**Web App tidak bisa dibaca.**\n\nDetail: `"+err.message+"`\n\nPeriksa: token cocok dengan `Code.gs`, *Who has access* diset **Anyone**, dan setelah mengedit skrip sudah **re-deploy sebagai New version**.");
   }
+}
+
+/* Langkah 2: tarik isi satu tab, lalu cache. */
+async function fetchTab(name){
+  if(S.loaded[name]) return S.loaded[name];
+  const res = await fetch(apiUrl({mode:'data', sheet:name}), {redirect:'follow'});
+  const raw = await res.text();
+  if(/^\s*</.test(raw)) throw new Error("respons bukan JSON");
+  const data = JSON.parse(raw);
+  if(data.error) throw new Error(data.error);
+
+  const values = (data.sheets && data.sheets[0] && data.sheets[0].values) || [];
+  const headers = values.shift() || [];
+  const rows = values.filter(r => r.some(c => String(c).trim() !== ""));
+
+  const csv = [headers, ...rows]
+    .map(r => r.map(c => /[",\n]/.test(String(c)) ? '"'+String(c).replace(/"/g,'""')+'"' : c).join(','))
+    .join('\n');
+
+  S.loaded[name] = { headers, rows, csv, profile: profileData(headers, rows) };
+  if(!S.active){ S.active = name; syncTabPicker(); }
+  return S.loaded[name];
+}
+
+function fillTabPicker(){
+  const sel = document.getElementById('tabSelect');
+  sel.innerHTML = S.catalog.map(t=>`<option value="${esc(t.name)}">${esc(t.name)} (${t.rows})</option>`).join('');
+  document.getElementById('tabPick').hidden = false;
+  syncTabPicker();
+}
+function syncTabPicker(){
+  const sel = document.getElementById('tabSelect');
+  if(S.active) sel.value = S.active;
+}
+async function pickTab(name){
+  S.active = name;
+  try{
+    const d = await fetchTab(name);
+    fillTicker();
+    toast(`Tab "${name}" dimuat — ${d.rows.length} baris`);
+    bot(`Fokus dipindah ke tab **${name}** (${d.rows.length} baris, ${d.headers.length} kolom). Pertanyaan berikutnya saya jawab dari tab ini kecuali Anda menyebut tab lain.`);
+  }catch(err){ toast("Gagal memuat tab: "+err.message,true); }
 }
 
 function parseCSV(text){
@@ -594,12 +657,6 @@ function parseCSV(text){
   if(cell!==""||row.length){ row.push(cell); rows.push(row); }
   return rows;
 }
-
-const toNum = v => {
-  if(v===null||v===undefined) return NaN;
-  const s = String(v).replace(/[%\s]/g,'').replace(/\.(?=\d{3}\b)/g,'').replace(',', '.');
-  return s==="" ? NaN : Number(s);
-};
 
 /* ringkasan statistik supaya jawaban model akurat, bukan tebakan */
 function profileData(headers, rows){
@@ -623,15 +680,19 @@ function profileData(headers, rows){
 
 function fillTicker(){
   const facts=[];
-  S.headers.forEach((h,i)=>{
-    const nums = S.rows.map(r=>toNum(r[i])).filter(n=>!isNaN(n));
-    if(nums.length > S.rows.length*0.6 && nums.length){
-      const avg = nums.reduce((a,b)=>a+b,0)/nums.length;
-      facts.push(`${h} rata-rata <b>${avg.toFixed(2)}</b>`);
-      facts.push(`${h} tertinggi <b>${Math.max(...nums)}</b>`);
-    }
-  });
-  facts.unshift(`<b>${S.rows.length}</b> baris data aktif`);
+  const d = S.loaded[S.active];
+  if(d){
+    d.headers.forEach((h,i)=>{
+      const nums = d.rows.map(r=>toNum(r[i])).filter(n=>!isNaN(n));
+      if(nums.length > d.rows.length*0.6 && nums.length){
+        const avg = nums.reduce((a,b)=>a+b,0)/nums.length;
+        facts.push(`${h} rata-rata <b>${avg.toFixed(2)}</b>`);
+        facts.push(`${h} tertinggi <b>${Math.max(...nums)}</b>`);
+      }
+    });
+    facts.unshift(`Tab aktif <b>${S.active}</b> · <b>${d.rows.length}</b> baris`);
+  }
+  facts.unshift(`<b>${S.catalog.length}</b> tab terhubung`);
   facts.push(`Sumber <b>Google Spreadsheet</b>`);
   facts.push(`Diperbarui <b>${new Date().toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'})}</b>`);
   const one = facts.slice(0,10).map(f=>`<span>${f}</span>`).join('');
@@ -698,10 +759,11 @@ async function send(){
   if(/^AIza[\w-]{20,}$/.test(text)){
     S.key = text; localStorage.setItem('ai_key',S.key);
     bot("Kunci API tersimpan. Menghubungkan ke spreadsheet…");
-    return loadSheet();
+    return loadCatalog();
   }
   if(!S.key){ bot("Belum ada API key. Buka **Pengaturan** atau tempel key Gemini Anda di sini."); return openSettings(); }
-  if(!S.rows.length){ bot("Data belum siap. Saya coba muat ulang spreadsheet-nya."); return loadSheet(); }
+  if(!S.url){ bot("URL Web App belum diisi. Buka **Pengaturan** untuk memasukkannya."); return openSettings(); }
+  if(!S.catalog.length){ bot("Daftar tab belum siap. Saya coba hubungkan ulang."); return loadCatalog(); }
 
   S.busy=true; document.getElementById('send').disabled=true;
   const bubble = thinking();
@@ -709,9 +771,27 @@ async function send(){
   if(wantsViz) showSkeleton();
 
   try{
-    const reply = await askGemini(text);
+    /* Langkah 1: model memilih tab mana yang dibutuhkan */
+    let tabs = [S.active || S.catalog[0].name];
+    if(S.catalog.length > 1){
+      bubble.innerHTML = `<div class="typing"><i></i><i></i><i></i></div>`;
+      tabs = await chooseTabs(text);
+    }
+
+    /* Langkah 2: tarik isi tab terpilih, lalu jawab */
+    const packs = [];
+    for(const name of tabs.slice(0,3)){
+      try{ packs.push({ name, ...(await fetchTab(name)) }); }catch(e){ /* tab dilewati */ }
+    }
+    if(!packs.length) throw new Error("Tidak ada tab yang bisa dibaca.");
+    S.active = packs[0].name; syncTabPicker(); fillTicker();
+
+    const reply = await askGemini(text, packs);
     const { prose, dash } = splitReply(reply);
     bubble.innerHTML = mdToHtml(prose || "Dashboard sudah digambar di panel kiri.");
+    const src = packs.map(p=>p.name).join(', ');
+    bubble.insertAdjacentHTML('beforeend',
+      `<div class="tagline" style="color:var(--txt-dim)">Sumber: ${esc(src)}</div>`);
     if(dash){
       drawDashboard(dash);
       bubble.insertAdjacentHTML('beforeend','<div class="tagline">▲ Dashboard diperbarui</div>');
@@ -723,33 +803,67 @@ async function send(){
     if(S.history.length>12) S.history = S.history.slice(-12);
   }catch(err){
     bubble.innerHTML = mdToHtml("**Permintaan gagal.** "+err.message+"\n\nCek kunci API dan koneksi, lalu coba lagi.");
-    restoreCanvas(); toast("Permintaan ke Gemini gagal",true);
+    restoreCanvas(); toast("Permintaan gagal",true);
   }finally{
     S.busy=false; document.getElementById('send').disabled=false;
     document.getElementById('stream').scrollTop = 1e9;
   }
 }
 
+/* Panggilan ringan: kirim katalog saja, minta model menyebut tab yang relevan. */
+async function chooseTabs(question){
+  const cat = S.catalog.map(t =>
+    `- "${t.name}" — ${t.rows} baris, kolom: ${t.columns.slice(0,12).join(', ')}`).join('\n');
+
+  const prompt = `Spreadsheet ini punya beberapa tab:
+${cat}
+
+Pertanyaan pengguna: "${question}"
+
+Tab mana yang datanya dibutuhkan untuk menjawab? Balas HANYA array JSON berisi nama tab, maksimal 3, urut dari yang paling relevan. Contoh: ["Januari","Februari"]. Tanpa penjelasan apa pun.`;
+
+  try{
+    const raw = await callGemini([{role:'user',parts:[{text:prompt}]}], null, 200);
+    const m = raw.match(/\[[\s\S]*?\]/);
+    if(m){
+      const picked = JSON.parse(m[0])
+        .filter(n => S.catalog.some(t => t.name === n));
+      if(picked.length) return picked;
+    }
+  }catch(e){ /* jatuh ke default */ }
+  return [S.active || S.catalog[0].name];
+}
+
 /* ============================================================
    GEMINI
 ============================================================ */
-function buildPrompt(){
-  const sample = S.csv.length > 45000 ? S.csv.slice(0,45000)+"\n…(dipotong)" : S.csv;
+function buildPrompt(packs){
+  const budget = Math.floor(45000 / packs.length);
+  const blocks = packs.map(p => {
+    const csv = p.csv.length > budget ? p.csv.slice(0,budget)+"\n…(dipotong)" : p.csv;
+    return `### TAB: "${p.name}" (${p.rows.length} baris)
+Ringkasan kolom:
+${p.profile}
+
+Data CSV:
+--- MULAI ${p.name} ---
+${csv}
+--- SELESAI ${p.name} ---`;
+  }).join('\n\n');
+
+  const others = S.catalog.map(t=>t.name).filter(n=>!packs.some(p=>p.name===n));
+
   return `Kamu "AiNews Bot", analis data TV Share untuk redaksi iNews. Jawab dalam Bahasa Indonesia yang ringkas, tegas, dan berbasis angka.
 
-RINGKASAN KOLOM (sudah dihitung dari data asli, gunakan sebagai acuan):
-${S.profile}
-
-DATA CSV:
---- MULAI ---
-${sample}
---- SELESAI ---
+${blocks}
+${others.length ? `\nTab lain yang ada di spreadsheet tapi TIDAK dimuat sekarang: ${others.join(', ')}. Kalau pertanyaan sebenarnya butuh salah satu tab itu, katakan tab mana yang perlu dibuka — jangan menebak isinya.` : ''}
 
 ATURAN
 1. Semua angka WAJIB berasal dari data di atas. Kalau informasi tidak ada, katakan tidak tersedia — jangan mengarang.
-2. Jawab persis yang ditanya. Pertanyaan singkat dijawab singkat; jangan tempelkan dashboard kalau tidak diminta atau tidak relevan.
-3. Jawaban teks maksimal 6 kalimat atau 6 poin. Sebutkan angka konkret, bukan kesan umum.
-4. Kalau pengguna minta dashboard, visualisasi, grafik, rekap, perbandingan, tren, atau analisis performa: tulis jawaban teks singkat, LALU lampirkan satu blok JSON di paling akhir dengan penanda $$DASH.
+2. Sebutkan nama tab saat mengutip angka bila lebih dari satu tab dimuat.
+3. Jawab persis yang ditanya. Pertanyaan singkat dijawab singkat; jangan tempelkan dashboard kalau tidak diminta atau tidak relevan.
+4. Jawaban teks maksimal 6 kalimat atau 6 poin. Sebutkan angka konkret, bukan kesan umum.
+5. Kalau pengguna minta dashboard, visualisasi, grafik, rekap, perbandingan, tren, atau analisis performa: tulis jawaban teks singkat, LALU lampirkan satu blok JSON di paling akhir dengan penanda $$DASH.
 
 FORMAT BLOK (JSON valid, tanpa komentar, tanpa markdown fence):
 $$DASH
@@ -783,16 +897,20 @@ KETENTUAN BLOK
 - Bagian "insights" dan "table" opsional. Kalau tidak ada dashboard yang perlu digambar, jangan tulis $$DASH sama sekali.`;
 }
 
-async function askGemini(userText){
+async function askGemini(userText, packs){
   const contents = [];
   S.history.forEach(h => contents.push({role:h.role, parts:[{text:h.text}]}));
   contents.push({role:'user', parts:[{text:userText}]});
+  return callGemini(contents, buildPrompt(packs), 3000);
+}
 
+/* Pemanggil dasar: dipakai untuk pemilihan tab (tanpa system prompt) maupun analisis penuh. */
+async function callGemini(contents, systemText, maxTokens){
   const body = {
-    system_instruction:{ parts:[{text:buildPrompt()}] },
     contents,
-    generationConfig:{ temperature:0.35, topP:0.9, maxOutputTokens:3000 }
+    generationConfig:{ temperature:0.35, topP:0.9, maxOutputTokens: maxTokens || 3000 }
   };
+  if(systemText) body.system_instruction = { parts:[{text:systemText}] };
 
   const models = [S.model, ...MODEL_FALLBACKS.filter(m=>m!==S.model)];
   let lastErr = "Model tidak tersedia.";
@@ -1019,12 +1137,6 @@ function mountChart(id, c){
   }catch(e){ el.innerHTML = '<p style="color:var(--txt-dim);font-size:13px;padding:20px 0">Grafik tidak bisa digambar.</p>'; }
 }
 
-const fmt = v => {
-  const n = Number(v);
-  if(isNaN(n)) return v;
-  return Number.isInteger(n) ? n.toLocaleString('id-ID') : n.toFixed(2).replace('.',',');
-};
-
 /* ============================================================
    EXPORT PNG
 ============================================================ */
@@ -1050,6 +1162,28 @@ async function exportDashboard(){
     if(label) label.textContent = old; btn.disabled = false;
   }
 }
+
+/* ============================================================
+   INIT — dipanggil terakhir supaya seluruh fungsi & konstanta
+   di atas sudah terdefinisi sebelum ada yang memakainya.
+============================================================ */
+function init(){
+  document.documentElement.dataset.theme = S.theme;
+  document.getElementById('modelBadge').textContent = S.model;
+  renderStarters();
+  autoGrow();
+
+  if(!S.key || !S.url){
+    setStatus(!S.key ? "Perlu API key" : "Perlu URL Web App","warn");
+    bot("Selamat datang di **AiNews**.\n\nSaya membaca **semua tab** spreadsheet lewat Apps Script Web App, lalu menyusunnya jadi dashboard di panel kiri.\n\nDi **Pengaturan** isi tiga hal: Gemini API Key, URL Web App (berakhiran `/exec`), dan token.");
+    setTimeout(openSettings, 700);
+  }else{
+    bot("Selamat datang kembali. Membaca daftar tab…");
+    loadCatalog();
+  }
+}
+
+init();
 </script>
 </body>
 </html>
