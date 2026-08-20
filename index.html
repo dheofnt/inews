@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gemini Notebook & Dashboard Generator</title>
+  <!-- Chart.js untuk merender grafik interaktif -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: #f0f2f5; display: flex; justify-content: center; height: 100vh; padding: 15px; }
+    .app-container { width: 100%; max-width: 1000px; background: #fff; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+    .header { background: #1a73e8; color: white; padding: 15px 20px; text-align: center; font-size: 18px; font-weight: bold; }
+    
+    .config-panel { padding: 12px 20px; background: #f8f9fa; border-bottom: 1px solid #e0e0e0; display: flex; flex-direction: column; gap: 8px; }
+    .config-panel input { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; }
+    .status { font-size: 12px; color: #666; font-weight: 500; }
+
+    .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; background: #fafafa; }
+    .message { max-width: 90%; padding: 12px 16px; border-radius: 10px; font-size: 14px; line-height: 1.5; word-wrap: break-word; }
+    .user { background: #1a73e8; color: white; align-self: flex-end; }
+    .bot { background: #ffffff; color: #333; align-self: flex-start; border: 1px solid #e0e0e0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); width: 100%; }
+
+    /* Styling Dashboard Dynamic Component */
+    .dashboard-container { margin-top: 10px; display: flex; flex-direction: column; gap: 15px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+    .kpi-card { background: #f1f5f9; border-left: 4px solid #1a73e8; padding: 12px; border-radius: 6px; }
+    .kpi-title { font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: bold; }
+    .kpi-value { font-size: 18px; font-weight: bold; color: #0f172a; margin-top: 4px; }
+    .chart-wrapper { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; height: 300px; position: relative; }
+
+    .input-area { display: flex; padding: 15px; border-top: 1px solid #e0e0e0; background: #fff; }
+    .input-area input { flex: 1; padding: 10px 14px; border: 1px solid #ccc; border-radius: 6px; outline: none; font-size: 14px; }
+    .input-area button { padding: 10px 20px; border: none; background: #1a73e8; color: white; margin-left: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    .input-area button:hover { background: #1557b0; }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  <div class="header">📊 Gemini AI - Sheet Assistant & Dashboard Generator</div>
+  
+  <div class="config-panel">
+    <input type="password" id="apiKey" placeholder="1. Masukkan Gemini API Key...">
+    <input type="text" id="sheetId" placeholder="2. Masukkan Google Spreadsheet ID...">
+    <div class="status" id="status">Status: Siap terhubung ke Google Sheets.</div>
+  </div>
+
+  <div class="chat-box" id="chatBox">
+    <div class="message bot">
+      Halo! Saya siap menganalisis data spreadsheet Anda. Anda bisa meminta saya menjawab pertanyaan data atau meminta pembuatan **Dashboard Interaktif** (misal: "Buatkan dashboard penjualan ringkas").
+    </div>
+  </div>
+
+  <div class="input-area">
+    <input type="text" id="userInput" placeholder="Tanyakan data atau minta dashboard..." onkeydown="if(event.key === 'Enter') sendMessage()">
+    <button onclick="sendMessage()">Kirim</button>
+  </div>
+</div>
+
+<script>
+  let chartInstances = [];
+
+  async function fetchGoogleSheetData(sheetId) {
+    try {
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = 'Status: Membaca data Google Sheets terbaru...';
+      const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Spreadsheet tidak ditemukan atau belum di-share ke umum (Viewer).');
+      const csvText = await response.text();
+      statusEl.textContent = 'Status: Data Google Sheets berhasil di-sync!';
+      return csvText;
+    } catch (err) {
+      document.getElementById('status').textContent = 'Error: ' + err.message;
+      return null;
+    }
+  }
+
+  async function sendMessage() {
+    const apiKey = document.getElementById('apiKey').value.trim();
+    const sheetId = document.getElementById('sheetId').value.trim();
+    const inputField = document.getElementById('userInput');
+    const userText = inputField.value.trim();
+
+    if (!apiKey || !sheetId) {
+      alert("Harap isi Gemini API Key dan Spreadsheet ID!");
+      return;
+    }
+    if (!userText) return;
+
+    appendMessage(userText, 'user');
+    inputField.value = '';
+
+    const botMessageContainer = appendMessage('Sedang menganalisis data & menyiapkan respons...', 'bot');
+
+    const sheetContent = await fetchGoogleSheetData(sheetId);
+    if (!sheetContent) {
+      botMessageContainer.textContent = "Gagal mengambil data dari Google Sheets.";
+      return;
+    }
+
+    const systemPrompt = `
+    Anda adalah analis data berpengalaman. Berikut adalah raw data CSV dari Google Sheets pengguna:
+    --- DATA START ---
+    ${sheetContent}
+    --- DATA END ---
+
+    Tugas Anda:
+    1. Jawab permintaan pengguna dengan jelas.
+    2. Jika pengguna meminta DASHBOARD, GRAFIK, atau RINGKASAN VISUAL, sertakan objek JSON khusus di AKHIR jawaban Anda dengan format ketat berikut:
+
+    $$DASHBOARD_JSON
+    {
+      "kpis": [
+        {"title": "Nama KPI 1", "value": "Nilai 1"},
+        {"title": "Nama KPI 2", "value": "Nilai 2"}
+      ],
+      "chart": {
+        "type": "bar", // pilihan: "bar", "line", atau "pie"
+        "title": "Judul Grafik",
+        "labels": ["Label 1", "Label 2", "Label 3"],
+        "datasets": [
+          {
+            "label": "Nama Metric",
+            "data": [10, 20, 30]
+          }
+        ]
+      }
+    }
+    $$DASHBOARD_JSON
+    `;
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: systemPrompt }, { text: `User request: ${userText}` }] }]
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.error) {
+        botMessageContainer.textContent = "Error Gemini API: " + data.error.message;
+      } else {
+        const fullResponse = data.candidates[0].content.parts[0].text;
+        renderBotResponse(botMessageContainer, fullResponse);
+      }
+    } catch (error) {
+      botMessageContainer.textContent = "Gagal terhubung ke API Gemini.";
+    }
+  }
+
+  function appendMessage(text, sender) {
+    const chatBox = document.getElementById('chatBox');
+    const msgDiv = document.createElement('div');
+    msgDiv.classList.add('message', sender);
+    msgDiv.textContent = text;
+    chatBox.appendChild(msgDiv);
+    chatBox.scrollTop = chatBox.scrollHeight;
+    return msgDiv;
+  }
+
+  function renderBotResponse(container, text) {
+    container.textContent = '';
+    
+    // Cek apakah terdapat bagian JSON Dashboard
+    const jsonMatch = text.match(/\$\$DASHBOARD_JSON\s*([\s\S]*?)\s*\$\$DASHBOARD_JSON/);
+    
+    let textOnly = text;
+    if (jsonMatch) {
+      textOnly = text.replace(jsonMatch[0], '').trim();
+    }
+
+    const textDiv = document.createElement('div');
+    textDiv.style.whiteSpace = 'pre-wrap';
+    textDiv.textContent = textOnly;
+    container.appendChild(textDiv);
+
+    // Render Dashboard jika JSON tersedia
+    if (jsonMatch && jsonMatch[1]) {
+      try {
+        const dashData = JSON.parse(jsonMatch[1]);
+        const dashDiv = document.createElement('div');
+        dashDiv.className = 'dashboard-container';
+
+        // 1. Render KPI Cards
+        if (dashData.kpis && dashData.kpis.length > 0) {
+          const kpiGrid = document.createElement('div');
+          kpiGrid.className = 'kpi-grid';
+          dashData.kpis.forEach(kpi => {
+            const card = document.createElement('div');
+            card.className = 'kpi-card';
+            card.innerHTML = `<div class="kpi-title">${kpi.title}</div><div class="kpi-value">${kpi.value}</div>`;
+            kpiGrid.appendChild(card);
+          });
+          dashDiv.appendChild(kpiGrid);
+        }
+
+        // 2. Render Chart
+        if (dashData.chart) {
+          const chartWrapper = document.createElement('div');
+          chartWrapper.className = 'chart-wrapper';
+          const canvas = document.createElement('canvas');
+          chartWrapper.appendChild(canvas);
+          dashDiv.appendChild(chartWrapper);
+
+          container.appendChild(dashDiv);
+
+          // Build Chart menggunakan Chart.js
+          const ctx = canvas.getContext('2d');
+          const newChart = new Chart(ctx, {
+            type: dashData.chart.type || 'bar',
+            data: {
+              labels: dashData.chart.labels,
+              datasets: dashData.chart.datasets.map(ds => ({
+                label: ds.label,
+                data: ds.data,
+                backgroundColor: ['#1a73e8', '#34a853', '#fbbc04', '#ea4335', '#a142f4'],
+                borderRadius: 4
+              }))
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                title: { display: true, text: dashData.chart.title || 'Grafik Data' }
+              }
+            }
+          });
+          chartInstances.push(newChart);
+        }
+      } catch (e) {
+        console.error('Gagal parsing Dashboard JSON:', e);
+      }
+    }
+  }
+</script>
+
+</body>
+</html>
