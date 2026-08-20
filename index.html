@@ -90,7 +90,6 @@
       return;
     }
 
-    // Tahap 1: Tanya Gemini apakah perlu generate gambar atau cukup teks
     const systemPrompt = `
     Anda adalah analis data visual. Berikut adalah data CSV dari Google Sheets:
     --- DATA START ---
@@ -125,7 +124,6 @@
 
       const fullResponse = data.candidates[0].content.parts[0].text;
       
-      // Deteksi apakah Gemini memberikan prompt gambar
       const imageMatch = fullResponse.match(/\$\$IMAGE_PROMPT\s*([\s\S]*?)\s*\$\$IMAGE_PROMPT/);
 
       let textOnly = fullResponse;
@@ -135,7 +133,6 @@
 
       botMessageContainer.textContent = textOnly;
 
-      // Tahap 2: Jika ada request gambar, panggil Imagen 3 API (Gratis)
       if (imageMatch && imageMatch[1]) {
         const imagePromptText = imageMatch[1].trim();
         const loadingImgText = document.createElement('div');
@@ -155,13 +152,18 @@
 
   async function generateImagen3Image(promptText, apiKey, container, loadingEl) {
     try {
-      const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+      const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:generateImages?key=${apiKey}`;
+      
       const response = await fetch(imagenUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          instances: [{ prompt: promptText }],
-          parameters: { sampleCount: 1, aspectRatio: "16:9" }
+          prompt: promptText,
+          config: {
+            numberOfImages: 1,
+            aspectRatio: "16:9",
+            outputMimeType: "image/jpeg"
+          }
         })
       });
 
@@ -169,17 +171,18 @@
 
       if (data.error) {
         loadingEl.textContent = "Gagal membuat gambar: " + data.error.message;
-      } else if (data.predictions && data.predictions[0].bytesBase64Encoded) {
+      } else if (data.generatedImages && data.generatedImages.length > 0) {
         loadingEl.remove();
+        const base64Image = data.generatedImages[0].image.imageBytes;
         const img = document.createElement('img');
         img.className = 'dashboard-img';
-        img.src = `data:image/png;base64,${data.predictions[0].bytesBase64Encoded}`;
+        img.src = `data:image/jpeg;base64,${base64Image}`;
         container.appendChild(img);
       } else {
-        loadingEl.textContent = "Format respon gambar tidak dikenali.";
+        loadingEl.textContent = "Format respon gambar tidak ditemukan.";
       }
     } catch (err) {
-      loadingEl.textContent = "Gagal memproses Imagen 3 API.";
+      loadingEl.textContent = "Gagal memproses Imagen 3 API: " + err.message;
     }
   }
 
