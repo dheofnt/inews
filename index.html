@@ -3,24 +3,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Infographic & Dashboard Generator</title>
+  <title>AiNews</title>
+  <!-- ApexCharts untuk grafik modern yang sangat cantik -->
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', 'Segoe UI', sans-serif; }
     body { background-color: #f0f2f5; display: flex; justify-content: center; height: 100vh; padding: 15px; }
-    .app-container { width: 100%; max-width: 900px; background: #fff; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+    .app-container { width: 100%; max-width: 950px; background: #fff; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
     .header { background: #1a73e8; color: white; padding: 15px 20px; text-align: center; font-size: 18px; font-weight: bold; }
     
     .config-panel { padding: 12px 20px; background: #f8f9fa; border-bottom: 1px solid #e0e0e0; display: flex; flex-direction: column; gap: 8px; }
     .config-panel input { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; }
     .status { font-size: 12px; color: #666; font-weight: 500; }
 
-    .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; background: #fafafa; }
-    .message { max-width: 90%; padding: 12px 16px; border-radius: 10px; font-size: 14px; line-height: 1.5; word-wrap: break-word; }
+    .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; background: #f4f7f6; }
+    .message { max-width: 95%; padding: 12px 16px; border-radius: 10px; font-size: 14px; line-height: 1.5; word-wrap: break-word; }
     .user { background: #1a73e8; color: white; align-self: flex-end; }
-    .bot { background: #ffffff; color: #333; align-self: flex-start; border: 1px solid #e0e0e0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); width: 100%; }
+    .bot { background: #ffffff; color: #333; align-self: flex-start; border: 1px solid #e0e0e0; box-shadow: 0 2px 5px rgba(0,0,0,0.05); width: 100%; }
 
-    .dashboard-img { width: 100%; max-width: 100%; height: auto; border-radius: 8px; margin-top: 10px; border: 1px solid #ddd; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    /* --- STYLING DASHBOARD PREMIUM (DARK MODE) --- */
+    .premium-dash { background: #1e1e2d; border-radius: 12px; padding: 20px; color: #fff; margin-top: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); width: 100%; }
+    .dash-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; text-align: center; color: #fff; }
+    
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+    .kpi-card { padding: 15px; border-radius: 10px; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: flex; flex-direction: column; justify-content: center; }
+    .kpi-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.85; margin-bottom: 5px; }
+    .kpi-value { font-size: 24px; font-weight: bold; }
+    
+    /* Gradien Warna untuk KPI Cards */
+    .bg-gradient-blue { background: linear-gradient(135deg, #3A1C71, #D76D77, #FFAF7B); }
+    .bg-gradient-green { background: linear-gradient(135deg, #11998e, #38ef7d); }
+    .bg-gradient-orange { background: linear-gradient(135deg, #FF8008, #FFC837); }
+    .bg-gradient-purple { background: linear-gradient(135deg, #4776E6, #8E54E9); }
 
+    .chart-container { background: #2b2b40; border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
+    
     .input-area { display: flex; padding: 15px; border-top: 1px solid #e0e0e0; background: #fff; }
     .input-area input { flex: 1; padding: 10px 14px; border: 1px solid #ccc; border-radius: 6px; outline: none; font-size: 14px; }
     .input-area button { padding: 10px 20px; border: none; background: #1a73e8; color: white; margin-left: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; }
@@ -30,36 +47,38 @@
 <body>
 
 <div class="app-container">
-  <div class="header">🎨 AI Visual Dashboard Generator</div>
+  <div class="header">📊 AiNews</div>
   
   <div class="config-panel">
     <input type="password" id="apiKey" placeholder="1. Masukkan Gemini API Key...">
     <input type="text" id="sheetId" placeholder="2. Masukkan Google Spreadsheet ID...">
-    <div class="status" id="status">Status: Siap terhubung.</div>
+    <div class="status" id="status">Status: Menunggu API Key dan Spreadsheet ID.</div>
   </div>
 
   <div class="chat-box" id="chatBox">
     <div class="message bot">
-      Halo! Saya dapat menganalisis data spreadsheet Anda dan menghasilkan **Gambar Dashboard/Infografis Penuh Warna** menggunakan AI. Silakan minta contoh: "Buatkan gambar infografis dashboard penjualan".
+      Halo! Saya siap membaca spreadsheet Anda dan membuatkan **Dashboard Visual yang Akurat dan Jelas Dibaca**. Silakan minta: "Tampilkan dashboard penjualan" atau "Buatkan visualisasi data ini".
     </div>
   </div>
 
   <div class="input-area">
-    <input type="text" id="userInput" placeholder="Minta penjelasan data atau buat gambar dashboard..." onkeydown="if(event.key === 'Enter') sendMessage()">
+    <input type="text" id="userInput" placeholder="Tanyakan data atau minta dashboard..." onkeydown="if(event.key === 'Enter') sendMessage()">
     <button onclick="sendMessage()">Kirim</button>
   </div>
 </div>
 
 <script>
+  const colorClasses = ['bg-gradient-blue', 'bg-gradient-green', 'bg-gradient-orange', 'bg-gradient-purple'];
+
   async function fetchGoogleSheetData(sheetId) {
     try {
       const statusEl = document.getElementById('status');
       statusEl.textContent = 'Status: Membaca data Google Sheets...';
       const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv`;
       const response = await fetch(url);
-      if (!response.ok) throw new Error('Spreadsheet tidak ditemukan atau belum di-share (Viewer).');
+      if (!response.ok) throw new Error('Pastikan ID benar dan Sheet sudah di-share ke Publik (Viewer).');
       const csvText = await response.text();
-      statusEl.textContent = 'Status: Data Google Sheets berhasil di-sync!';
+      statusEl.textContent = 'Status: Data berhasil di-sync!';
       return csvText;
     } catch (err) {
       document.getElementById('status').textContent = 'Error: ' + err.message;
@@ -82,94 +101,66 @@
     appendMessage(userText, 'user');
     inputField.value = '';
 
-    const botMessageContainer = appendMessage('Menganalisis data spreadsheet...', 'bot');
+    const botMessageContainer = appendMessage('⏳ Sedang menganalisis data dan merancang dashboard...', 'bot');
 
     const sheetContent = await fetchGoogleSheetData(sheetId);
     if (!sheetContent) {
-      botMessageContainer.textContent = "Gagal mengambil data dari Google Sheets.";
+      botMessageContainer.textContent = "Gagal membaca Google Sheets. Periksa ID dan akses share Anda.";
       return;
     }
 
     const systemPrompt = `
-    Anda adalah analis data visual. Berikut adalah data CSV dari Google Sheets:
+    Anda adalah Data Scientist. Berikut adalah raw data CSV dari pengguna:
     --- DATA START ---
     ${sheetContent}
     --- DATA END ---
 
-    Petunjuk:
-    1. Jawab pertanyaan pengguna.
-    2. Jika pengguna meminta GAMBAR, INFOGRAFIS, DASHBOARD VISUAL, atau GRAFIK VISUAL, buatlah prompt bahasa Inggris ringkas untuk model pembuat gambar di AKHIR jawaban Anda dengan format persis:
+    Tugas:
+    1. Berikan pengantar singkat untuk menjawab permintaan.
+    2. Jika pengguna meminta DASHBOARD, GRAFIK, INFOGRAFIS, atau VISUALISASI, wajib output JSON murni di bagian AKHIR jawaban menggunakan format penanda $$DASHBOARD_JSON.
 
-    $$IMAGE_PROMPT
-    A modern high-resolution infographic dashboard UI, dark mode, colorful gradient charts, KPI cards summarizing data: [TULIS METRIK/ANGKA UTAMA DATA DI SINI]. Clean UI vector style.
-    $$IMAGE_PROMPT
+    Aturan JSON (Format sangat ketat):
+    $$DASHBOARD_JSON
+    {
+      "title": "Judul Dashboard",
+      "kpis": [
+        {"title": "Nama Metrik 1", "value": "1.000"},
+        {"title": "Nama Metrik 2", "value": "Rp 50Jt"}
+      ],
+      "charts": [
+        {
+          "title": "Judul Grafik (Contoh: Tren Bulanan)",
+          "type": "area", // opsi: area, bar, line, donut
+          "labels": ["Label 1", "Label 2", "Label 3"],
+          "series": [{"name": "Data Set 1", "data": [10, 20, 30]}]
+        }
+      ]
+    }
+    $$DASHBOARD_JSON
     `;
 
     try {
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
-      const response = await fetch(geminiUrl, {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: systemPrompt }, { text: `User request: ${userText}` }] }]
+          contents: [{ parts: [{ text: systemPrompt }, { text: `Permintaan: ${userText}` }] }]
         })
       });
 
       const data = await response.json();
       
       if (data.error) {
-        botMessageContainer.textContent = "Error Gemini API: " + data.error.message;
+        botMessageContainer.textContent = "Error API: " + data.error.message;
         return;
       }
 
-      const fullResponse = data.candidates[0].content.parts[0].text;
-      
-      const imageMatch = fullResponse.match(/\$\$IMAGE_PROMPT\s*([\s\S]*?)\s*\$\$IMAGE_PROMPT/);
-
-      let textOnly = fullResponse;
-      if (imageMatch) {
-        textOnly = fullResponse.replace(imageMatch[0], '').trim();
-      }
-
-      botMessageContainer.textContent = textOnly;
-
-      if (imageMatch && imageMatch[1]) {
-        const imagePromptText = imageMatch[1].trim();
-        const loadingImgText = document.createElement('div');
-        loadingImgText.style.marginTop = '10px';
-        loadingImgText.style.fontStyle = 'italic';
-        loadingImgText.style.color = '#1a73e8';
-        loadingImgText.textContent = '🎨 Sedang menggambar dashboard visual...';
-        botMessageContainer.appendChild(loadingImgText);
-
-        renderImageFromPrompt(imagePromptText, botMessageContainer, loadingImgText);
-      }
+      const fullText = data.candidates[0].content.parts[0].text;
+      renderDashboardResponse(botMessageContainer, fullText);
 
     } catch (error) {
-      botMessageContainer.textContent = "Gagal terhubung ke API Gemini.";
-    }
-  }
-
-  function renderImageFromPrompt(promptText, container, loadingEl) {
-    try {
-      const encodedPrompt = encodeURIComponent(promptText);
-      // Menggunakan Pollinations.ai API yang bebas CORS & gratis
-      const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1280&height=720&nologo=true&seed=${Math.floor(Math.random() * 1000)}`;
-
-      const img = document.createElement('img');
-      img.className = 'dashboard-img';
-      img.src = imageUrl;
-
-      img.onload = () => {
-        loadingEl.remove();
-        container.appendChild(img);
-      };
-
-      img.onerror = () => {
-        loadingEl.textContent = "Gagal memuat gambar dashboard.";
-      };
-    } catch (err) {
-      loadingEl.textContent = "Gagal memproses gambar: " + err.message;
+      botMessageContainer.textContent = "Gagal terhubung ke API.";
     }
   }
 
@@ -181,6 +172,88 @@
     chatBox.appendChild(msgDiv);
     chatBox.scrollTop = chatBox.scrollHeight;
     return msgDiv;
+  }
+
+  function renderDashboardResponse(container, text) {
+    container.innerHTML = ''; 
+    const jsonMatch = text.match(/\$\$DASHBOARD_JSON\s*([\s\S]*?)\s*\$\$DASHBOARD_JSON/);
+    
+    let textOnly = text;
+    if (jsonMatch) textOnly = text.replace(jsonMatch[0], '').trim();
+
+    // Tampilkan teks pengantar
+    const textDiv = document.createElement('div');
+    textDiv.style.whiteSpace = 'pre-wrap';
+    textDiv.textContent = textOnly;
+    container.appendChild(textDiv);
+
+    // Render UI Dashboard yang sangat cantik jika ada JSON
+    if (jsonMatch && jsonMatch[1]) {
+      try {
+        const dashData = JSON.parse(jsonMatch[1]);
+        
+        // Buat Container Dashboard Dark Mode
+        const dashWrapper = document.createElement('div');
+        dashWrapper.className = 'premium-dash';
+        
+        if (dashData.title) {
+          const titleEl = document.createElement('div');
+          titleEl.className = 'dash-title';
+          titleEl.textContent = dashData.title;
+          dashWrapper.appendChild(titleEl);
+        }
+
+        // 1. Buat KPI Cards dengan Warna Gradien
+        if (dashData.kpis && dashData.kpis.length > 0) {
+          const kpiGrid = document.createElement('div');
+          kpiGrid.className = 'kpi-grid';
+          
+          dashData.kpis.forEach((kpi, index) => {
+            const card = document.createElement('div');
+            // Ganti warna gradien secara berurutan
+            const colorClass = colorClasses[index % colorClasses.length];
+            card.className = `kpi-card ${colorClass}`;
+            card.innerHTML = `<div class="kpi-title">${kpi.title}</div><div class="kpi-value">${kpi.value}</div>`;
+            kpiGrid.appendChild(card);
+          });
+          dashWrapper.appendChild(kpiGrid);
+        }
+
+        // 2. Buat Grafik Modern menggunakan ApexCharts
+        if (dashData.charts && dashData.charts.length > 0) {
+          dashData.charts.forEach((chartData, index) => {
+            const chartDiv = document.createElement('div');
+            chartDiv.className = 'chart-container';
+            const chartId = 'chart-' + Math.random().toString(36).substr(2, 9);
+            chartDiv.id = chartId;
+            dashWrapper.appendChild(chartDiv);
+
+            // Konfigurasi ApexCharts Modern & Dark Theme
+            const options = {
+              series: chartData.series,
+              chart: { type: chartData.type || 'bar', height: 280, foreColor: '#9ca3af', toolbar: { show: false } },
+              colors: ['#00E396', '#FEB019', '#FF4560', '#775DD0'],
+              title: { text: chartData.title, align: 'left', style: { color: '#ffffff', fontSize: '14px' } },
+              xaxis: { categories: chartData.labels },
+              theme: { mode: 'dark' },
+              stroke: { curve: 'smooth', width: chartData.type === 'line' || chartData.type === 'area' ? 3 : 0 },
+              grid: { borderColor: '#404056' },
+              dataLabels: { enabled: false },
+              tooltip: { theme: 'dark' }
+            };
+
+            // Menunda rendering sedikit agar elemen masuk ke DOM
+            setTimeout(() => {
+              new ApexCharts(document.getElementById(chartId), options).render();
+            }, 50);
+          });
+        }
+
+        container.appendChild(dashWrapper);
+      } catch (e) {
+        console.error('Gagal parsing Dashboard JSON:', e);
+      }
+    }
   }
 </script>
 
