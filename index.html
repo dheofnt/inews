@@ -875,12 +875,16 @@ $$DASH
   ],
   "charts": [
     {
-      "title":"Share per channel",
+      "title":"Tren share per channel",
       "subtitle":"Opsional, satu kalimat",
-      "type":"bar",
+      "type":"line",
       "span":"full",
-      "labels":["iNews","Kompas TV","tvOne"],
-      "series":[{"name":"Share (%)","data":[15.4,12.1,9.8]}],
+      "labels":["Jan 2026","Feb 2026","Mar 2026"],
+      "series":[
+        {"name":"INEWS","data":[4.04,3.81,5.41]},
+        {"name":"TVONE","data":[2.71,2.82,4.26]},
+        {"name":"KOMPASTV","data":[1.76,1.61,2.58]}
+      ],
       "suffix":"%"
     }
   ],
@@ -890,7 +894,9 @@ $$DASH
 $$DASH
 
 KETENTUAN BLOK
-- type: bar | column | line | area | donut | pie | radar | scatter. Pakai "donut"/"pie" hanya untuk komposisi 1 seri.
+- type: line | bar | column | area | donut | pie | radar | scatter. Untuk perbandingan antar periode (bulan/minggu), SELALU pakai "line" — satu seri per channel, digambar sebagai kurva berarsir.
+- Nama seri harus nama channel apa adanya ("INEWS", "TVONE", "KOMPASTV", "METRO") supaya warnanya otomatis mengikuti warna stasiun.
+- "labels" untuk tren waktu ditulis "Bulan Tahun", contoh: ["Jan 2026","Feb 2026","Mar 2026"].
 - span: "full" (selebar panel) atau "half". Maksimal 4 grafik, 5 KPI, 5 insight, 12 baris tabel.
 - Untuk donut/pie, "series" berupa array angka: "series":[15.4,12.1,9.8].
 - trend: "up" | "down" | "flat". Hilangkan "delta"/"note" bila tidak ada pembanding di data.
@@ -987,11 +993,34 @@ function restoreCanvas(){
   }
 }
 
-const PALETTE = ['#FF3B47','#3DD6F5','#FFB020','#38E1A4','#9B8CFF','#F97316','#22D3EE','#E879F9'];
+const PALETTE = ['#E8453C','#F5A623','#7B2D8E','#4A90D9','#38E1A4','#F97316','#9B8CFF','#E879F9'];
 
-/* Ukuran angka di atas bar / titik garis / persentase donut.
-   Semula 11px — diturunkan 50%. Naikkan nilai ini kalau terasa terlalu kecil. */
-const DATA_LABEL_PX = 5.5;
+/* Warna brand per stasiun — dipakai otomatis kalau nama seri cocok,
+   supaya iNews selalu merah, tvOne oranye, dst. di semua grafik. */
+const CHANNEL_COLORS = {
+  inews:'#E8453C', tvone:'#F5A623', kompastv:'#7B2D8E', kompas:'#7B2D8E',
+  metro:'#4A90D9', metrotv:'#4A90D9', rcti:'#1B6CC4', mnctv:'#E23A2E',
+  gtv:'#F2A007', inewstv:'#E8453C', sctv:'#00A0E3', indosiar:'#F5B301',
+  trans7:'#4B2E83', transtv:'#C8102E', antv:'#7AB800', tvri:'#0B4DA2', net:'#E03A3E'
+};
+const keyOf = s => String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+
+/* Warna final: pakai warna brand bila nama seri/label dikenali, sisanya dari palet. */
+function resolveColors(names){
+  return names.map((n,i) => CHANNEL_COLORS[keyOf(n)] || PALETTE[i % PALETTE.length]);
+}
+
+/* Label sumbu X "Jan 2026" dipecah jadi dua baris seperti contoh. */
+function splitLabels(labels){
+  return (labels||[]).map(l=>{
+    const p = String(l).trim().split(/\s+/);
+    return (p.length===2 && /^\d{4}$/.test(p[1])) ? [p[0], p[1]] : l;
+  });
+}
+
+/* Ukuran angka di atas titik/bar. 9px menyamai contoh infografis yang diunggah.
+   Turunkan ke 5.5 kalau ingin sekecil versi sebelumnya. */
+const DATA_LABEL_PX = 9;
 
 function drawDashboard(d){
   S.dashboard = d;
@@ -1074,10 +1103,15 @@ function drawDashboard(d){
 function mountChart(id, c){
   const el = document.getElementById(id); if(!el) return;
   const dark = S.theme === 'dark';
-  const txt  = dark ? '#A7B6D4' : '#4A5A78';
+  const txt  = dark ? '#A7B6D4' : '#5A6B85';
+  const panelBg = dark ? '#121A2B' : '#FFFFFF';
   let type = (c.type||'bar').toLowerCase();
   const horizontal = type === 'bar' && (c.horizontal === true);
   if(type === 'column') type = 'bar';
+
+  /* Gaya infografis: garis digambar dengan area gradien tipis di bawahnya.
+     Set "plain":true pada objek chart kalau ingin garis polos tanpa arsiran. */
+  if(type === 'line' && c.plain !== true) type = 'area';
 
   const pie = type==='donut' || type==='pie';
   let series = c.series;
@@ -1089,48 +1123,62 @@ function mountChart(id, c){
     series = [{name:c.name||'Nilai', data:series}];
   }
 
+  /* Warna mengikuti nama seri: iNews merah, tvOne oranye, KompasTV ungu, dst. */
+  const names  = pie ? (c.labels||[]) : (series||[]).map(s=>s.name);
+  const colors = resolveColors(names);
+
+  const lineish = type==='area' || type==='line';
   const suffix = c.suffix || '';
   const opt = {
     series,
     chart:{
-      type, height: c.height || (pie?330:330), fontFamily:"'Inter Tight',sans-serif",
-      background:'transparent', foreColor:txt,
+      type, height: c.height || 340, fontFamily:"'Inter Tight',sans-serif",
+      background:'transparent', foreColor:txt, parentHeightOffset:0,
       toolbar:{show:true, tools:{download:true,selection:false,zoom:false,pan:false,reset:false}},
       animations:{easing:'easeinout', speed:600}
     },
     theme:{ mode: dark?'dark':'light' },
-    colors: PALETTE,
+    colors,
     dataLabels:{
       enabled:true,
       formatter: v => pie ? (Number(v).toFixed(1)+'%') : (v===null?'':fmt(v)+suffix),
-      style:{ fontSize:DATA_LABEL_PX+'px', fontWeight:700, fontFamily:"'JetBrains Mono',monospace",
-              colors:[type==='line'||type==='area'? txt : (dark?'#0A0F1C':'#FFFFFF')] },
-      background: (type==='line'||type==='area')
-        ? { enabled:true, foreColor: dark?'#E9EEF9':'#0E1626', borderRadius:2, padding:2,
-            borderWidth:1, borderColor: dark?'#243350':'#DCE3F0', opacity:.95 }
-        : { enabled:false },
-      offsetY: type==='bar' && !horizontal ? -10 : 0
+      /* di grafik garis/area, angka mengambil warna serinya sendiri */
+      style:{ fontSize:DATA_LABEL_PX+'px', fontWeight:700, fontFamily:"'Inter Tight',sans-serif",
+              colors: lineish ? colors : [dark?'#0A0F1C':'#FFFFFF'] },
+      background:{ enabled:false },
+      offsetY: lineish ? -9 : (type==='bar' && !horizontal ? -10 : 0)
     },
     plotOptions:{
       bar:{ horizontal, borderRadius:5, columnWidth:'56%', barHeight:'62%', dataLabels:{position:'top'} },
       pie:{ donut:{ size:'62%', labels:{ show:true, total:{ show:true, label:'Total', fontFamily:"'Bricolage Grotesque',sans-serif" } } } }
     },
-    stroke:{ curve:'smooth', width: (type==='line'?3 : type==='area'?2 : pie?2:0),
-             colors: pie ? [dark?'#121A2B':'#fff'] : undefined },
-    fill:{ opacity: type==='area'?0.18:1 },
-    markers:{ size: type==='line'?4:0, strokeWidth:2, hover:{size:6} },
+    stroke:{ curve:'smooth', width: lineish ? 2.5 : (pie?2:0),
+             colors: pie ? [panelBg] : undefined },
+    fill: type==='area'
+      ? { type:'gradient', gradient:{ shadeIntensity:1, opacityFrom:.30, opacityTo:.02, stops:[0,90,100] } }
+      : { opacity:1 },
+    markers:{ size: lineish?4:0, strokeWidth:2, strokeColors:panelBg, hover:{size:6} },
     labels: pie ? (c.labels||[]) : undefined,
     xaxis: pie ? undefined : {
-      categories: c.labels||[],
-      labels:{ style:{fontSize:'11.5px'}, rotate:-35, rotateAlways:false, trim:true, hideOverlappingLabels:true },
-      axisBorder:{ color: dark?'#243350':'#DCE3F0' }, axisTicks:{ show:false }
+      categories: splitLabels(c.labels),
+      labels:{ style:{fontSize:'11px', fontWeight:500}, rotate:0, trim:false, hideOverlappingLabels:true },
+      axisBorder:{ show:true, color: dark?'#243350':'#DCE3F0' },
+      axisTicks:{ show:true, color: dark?'#243350':'#DCE3F0', height:5 },
+      tooltip:{ enabled:false }
     },
-    yaxis: pie ? undefined : { labels:{ formatter: v=>fmt(v)+suffix, style:{fontSize:'11.5px'} } },
-    grid:{ borderColor: dark?'rgba(255,255,255,.07)':'rgba(10,20,40,.08)', strokeDashArray:4,
-           padding:{ top:0, right:8, bottom:0, left:4 } },
-    legend:{ position:'bottom', horizontalAlign:'center', fontSize:'12px', markers:{radius:4},
-             itemMargin:{horizontal:10,vertical:4} },
-    tooltip:{ theme: dark?'dark':'light', y:{ formatter: v=> fmt(v)+suffix } },
+    /* Sumbu Y disembunyikan — angka sudah menempel di tiap titik.
+       Set "showAxis":true pada objek chart kalau tetap ingin skala di kiri. */
+    yaxis: pie ? undefined : {
+      show: c.showAxis === true,
+      labels:{ formatter: v=>fmt(v)+suffix, style:{fontSize:'11px'} }
+    },
+    grid:{ show:!pie, borderColor: dark?'rgba(255,255,255,.07)':'#EDF1F7', strokeDashArray:0,
+           xaxis:{ lines:{ show:false } }, yaxis:{ lines:{ show:true } },
+           padding:{ top:0, right:16, bottom:0, left:16 } },
+    legend:{ position:'top', horizontalAlign:'left', fontSize:'12px', fontWeight:600, offsetY:2,
+             markers:{radius:12, width:9, height:9}, itemMargin:{horizontal:12,vertical:4} },
+    tooltip:{ theme: dark?'dark':'light', shared:lineish, intersect:false,
+              y:{ formatter: v=> fmt(v)+suffix } },
     noData:{ text:'Tidak ada data untuk grafik ini', style:{ color:txt } },
     responsive:[{ breakpoint:640, options:{ chart:{height:300}, xaxis:{labels:{rotate:-45}} } }]
   };
