@@ -1,1241 +1,748 @@
 <!DOCTYPE html>
-<html lang="id" data-theme="dark">
+<html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AiNews — TV Share Intelligence</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Chatbot Data</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
-
-<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-/* ============ TOKENS ============ */
-:root{
-  --ink:#0A0F1C; --panel:#121A2B; --panel-2:#182238; --line:#243350;
-  --txt:#E9EEF9; --txt-mid:#A7B6D4; --txt-dim:#6F82A6;
-  --signal:#FF3B47; --signal-soft:rgba(255,59,71,.14);
-  --onair:#FFB020; --cyan:#3DD6F5; --mint:#38E1A4; --violet:#9B8CFF;
-  --grid:rgba(255,255,255,.06);
-  --shadow:0 18px 40px -22px rgba(0,0,0,.8);
-  --r:14px;
-  --display:'Bricolage Grotesque',system-ui,sans-serif;
-  --body:'Inter Tight',system-ui,sans-serif;
-  --mono:'JetBrains Mono',ui-monospace,monospace;
-}
-[data-theme="light"]{
-  --ink:#EEF1F7; --panel:#FFFFFF; --panel-2:#F5F7FC; --line:#DCE3F0;
-  --txt:#0E1626; --txt-mid:#4A5A78; --txt-dim:#7A8AA8;
-  --grid:rgba(10,20,40,.07);
-  --shadow:0 14px 34px -22px rgba(15,30,60,.45);
-}
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
-body{
-  background:var(--ink); color:var(--txt); font-family:var(--body);
-  display:flex; flex-direction:column; overflow:hidden;
-  -webkit-font-smoothing:antialiased;
-}
-::-webkit-scrollbar{width:10px;height:10px}
-::-webkit-scrollbar-thumb{background:var(--line);border-radius:10px;border:3px solid transparent;background-clip:content-box}
-::-webkit-scrollbar-track{background:transparent}
-button,input,textarea,select{font-family:inherit;color:inherit}
-:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;border-radius:6px}
+  :root{
+    --bg:#efe9e0;
+    --surface:#ffffff;
+    --surface-2:#d9fdd3;
+    --border:#e4ded4;
+    --text:#111b21;
+    --text-dim:#667781;
+    --accent-user:#128C7E;
+    --accent-ai:#25D366;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--surface);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+  }
+  .app{
+    width:100%;
+    height:100vh;
+    height:100dvh;
+    display:flex;
+    flex-direction:row;
+    background:var(--surface);
+  }
 
-/* ============ TOPBAR ============ */
-.topbar{
-  display:flex;align-items:center;justify-content:space-between;gap:16px;
-  padding:10px 18px;background:var(--panel);border-bottom:1px solid var(--line);z-index:20;
-}
-.brand{display:flex;align-items:center;gap:12px;min-width:0}
-.mark{
-  width:38px;height:38px;border-radius:11px;display:grid;place-items:center;flex:none;
-  background:linear-gradient(150deg,var(--signal),#B01020);
-  font-family:var(--display);font-weight:800;font-size:17px;color:#fff;letter-spacing:-.5px;
-  box-shadow:0 6px 18px -8px var(--signal);
-}
-.brand-txt{display:flex;flex-direction:column;line-height:1.05;min-width:0}
-.brand-name{font-family:var(--display);font-size:19px;font-weight:800;letter-spacing:-.6px}
-.brand-name em{font-style:normal;color:var(--signal)}
-.brand-sub{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--txt-dim);font-weight:600;white-space:nowrap}
+  /* ---- Sidebar ala WhatsApp Desktop (tampil di layar lebar saja) ---- */
+  .sidebar{
+    width:320px;flex-shrink:0;
+    background:var(--surface);
+    border-right:1px solid var(--border);
+    display:flex;flex-direction:column;
+  }
+  .sidebar-header{
+    padding:16px;display:flex;align-items:center;gap:12px;
+    border-bottom:1px solid var(--border);flex-shrink:0;
+  }
+  .sidebar-avatar{
+    width:40px;height:40px;border-radius:50%;flex-shrink:0;
+    background:var(--accent-user);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;
+  }
+  .sidebar-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;color:var(--text);}
+  .sidebar-sub{font-size:11.5px;color:var(--text-dim);margin-top:1px;}
+  .sidebar-search{
+    margin:10px 12px;padding:9px 14px;
+    background:var(--bg);border-radius:20px;
+    color:var(--text-dim);font-size:13px;flex-shrink:0;
+  }
+  .chat-list{flex:1;overflow-y:auto;}
+  .chat-list-item{
+    padding:12px 16px;display:flex;gap:12px;align-items:center;
+    background:#f0f2f5;cursor:default;
+  }
+  .chat-list-avatar{
+    width:44px;height:44px;border-radius:50%;flex-shrink:0;
+    background:var(--accent-ai);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-weight:700;
+  }
+  .chat-list-info{flex:1;min-width:0;}
+  .chat-list-name{font-size:14px;font-weight:600;color:var(--text);}
+  .chat-list-preview{font-size:12.5px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
 
-.onair{
-  display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;
-  background:var(--signal-soft);border:1px solid rgba(255,59,71,.35);
-  font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--signal);
-}
-.onair .dot{width:7px;height:7px;border-radius:50%;background:currentColor;animation:pulse 1.8s infinite}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.8)}}
-.onair.ok{background:rgba(56,225,164,.12);border-color:rgba(56,225,164,.35);color:var(--mint)}
-.onair.warn{background:rgba(255,176,32,.12);border-color:rgba(255,176,32,.35);color:var(--onair)}
+  /* ---- Panel utama (header + chat + composer) ---- */
+  .main-pane{flex:1;display:flex;flex-direction:column;min-width:0;height:100%;}
 
-.tools{display:flex;align-items:center;gap:8px}
-.btn{
-  display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:10px;
-  background:var(--panel-2);border:1px solid var(--line);color:var(--txt-mid);
-  font-size:12.5px;font-weight:600;cursor:pointer;transition:.16s;white-space:nowrap;
-}
-.btn:hover{color:var(--txt);border-color:var(--txt-dim);transform:translateY(-1px)}
-.btn.primary{background:var(--signal);border-color:var(--signal);color:#fff}
-.btn.primary:hover{filter:brightness(1.08)}
-.btn.ghost{background:transparent}
-.btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .header{
+    padding:14px 20px;
+    border-bottom:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:var(--surface);
+    flex-shrink:0;
+  }
+  .header-title{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:var(--text);}
+  .header-sub{font-size:12px;color:var(--text-dim);margin-top:2px;}
+  .header-actions{display:flex;align-items:center;gap:8px;}
+  .status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-dim);}
+  .status-dot{width:7px;height:7px;border-radius:50%;background:var(--accent-ai);animation:pulse 2s infinite;}
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(37,211,102,0.4);}
+    70%{box-shadow:0 0 0 6px rgba(37,211,102,0);}
+    100%{box-shadow:0 0 0 0 rgba(37,211,102,0);}
+  }
+  .btn-icon{
+    background:transparent;border:none;color:var(--text-dim);
+    width:34px;height:34px;border-radius:50%;font-size:15px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    transition:background 0.15s,color 0.15s;
+  }
+  .btn-icon:hover{background:var(--bg);color:var(--text);}
+  .btn-icon.active{background:rgba(37,211,102,0.15);color:#128C7E;}
 
-/* ============ WORKSPACE ============ */
-.workspace{display:flex;flex:1;overflow:hidden}
+  .chat{flex:1;overflow-y:auto;display:flex;flex-direction:column;background:var(--bg);padding:16px 8%;gap:8px;}
+  .empty-state{margin:auto;text-align:center;color:var(--text-dim);font-size:13px;max-width:340px;padding:20px;}
+  .empty-state b{color:var(--text);font-family:'Space Grotesk',sans-serif;}
 
-/* ---- canvas ---- */
-.canvas-wrap{flex:1;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth}
-.canvas{padding:22px 26px 60px;max-width:1400px;margin:0 auto}
+  .msg{display:block;width:auto;max-width:65%;padding:0;}
+  .msg.user{align-self:flex-end;}
+  .msg.ai,.msg.error,.msg.thinking{align-self:flex-start;}
+  .msg.thinking{padding:4px 6px;color:var(--text-dim);font-size:13px;font-style:italic;}
+  .msg-row{display:flex;gap:0;align-items:flex-start;}
+  .avatar{display:none;}
+  .msg-inner{flex:1;min-width:0;padding:8px 12px;border-radius:12px;box-shadow:0 1px 1px rgba(0,0,0,0.08);}
+  .msg.user .msg-inner{background:var(--surface-2);border-bottom-right-radius:3px;}
+  .msg.ai .msg-inner{background:var(--surface);border-bottom-left-radius:3px;}
+  .msg.error .msg-inner{background:#ffe3e3;border-bottom-left-radius:3px;}
+  .msg-label{display:none;}
+  .msg-body{font-size:14.5px;line-height:1.55;white-space:pre-wrap;word-wrap:break-word;color:var(--text);}
+  .msg.error .msg-body{color:#c0392b;}
 
-.canvas-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:6px}
-.tabpick{display:flex;flex-direction:column;gap:6px;flex:none}
-.tabpick label{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--txt-dim);font-weight:700}
-.tabpick select{padding:9px 12px;border-radius:10px;background:var(--panel);border:1px solid var(--line);font-size:13px;font-weight:600;outline:none;cursor:pointer;min-width:180px}
-.tabpick select:focus{border-color:var(--signal);box-shadow:0 0 0 3px var(--signal-soft)}
-.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--signal);font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px}
-.eyebrow::before{content:"";width:22px;height:2px;background:var(--signal);display:block}
-h1.title{font-family:var(--display);font-size:clamp(23px,3vw,34px);font-weight:800;letter-spacing:-1px;line-height:1.08}
-.subtitle{color:var(--txt-mid);font-size:14px;margin-top:8px;max-width:70ch;line-height:1.55}
+  .input-row{
+    flex-shrink:0;
+    display:flex;gap:8px;align-items:flex-end;
+    padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));
+    background:var(--bg);
+  }
+  textarea#userInput{
+    flex:1;resize:none;min-height:24px;max-height:140px;
+    background:var(--surface);border:none;outline:none;border-radius:22px;
+    color:var(--text);font-family:'Inter',sans-serif;font-size:14.5px;padding:11px 16px;line-height:1.4;
+    box-shadow:0 1px 2px rgba(0,0,0,0.08);
+  }
+  .btn-mic{
+    width:40px;height:40px;flex-shrink:0;border-radius:50%;border:none;
+    background:var(--surface);color:var(--accent-user);font-size:17px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 1px 2px rgba(0,0,0,0.08);
+    transition:background 0.15s,color 0.15s;
+  }
+  .btn-mic:hover{color:#075E54;}
+  .btn-mic.listening{background:rgba(37,211,102,0.18);color:#075E54;animation:micpulse 1.1s infinite;}
+  .btn-mic:disabled{opacity:0.35;cursor:not-allowed;}
+  @keyframes micpulse{
+    0%{box-shadow:0 0 0 0 rgba(37,211,102,0.35);}
+    70%{box-shadow:0 0 0 8px rgba(37,211,102,0);}
+    100%{box-shadow:0 0 0 0 rgba(37,211,102,0);}
+  }
+  .msg-speak{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:22px;height:22px;border-radius:50%;border:1px solid var(--border);
+    background:transparent;color:var(--text-dim);font-size:11px;cursor:pointer;margin-top:8px;
+  }
+  .msg-speak:hover{color:var(--accent-ai);border-color:var(--accent-ai);}
+  .btn-send{
+    background:var(--accent-ai);color:#fff;width:40px;height:40px;padding:0;flex-shrink:0;
+    border:none;border-radius:50%;font-size:16px;font-weight:600;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .btn-send:hover{opacity:0.85;}
+  .btn-send:disabled{opacity:0.35;cursor:not-allowed;}
+  ::-webkit-scrollbar{width:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
 
-/* ticker — signature strip */
-.ticker{
-  margin:18px 0 22px;border:1px solid var(--line);border-left:3px solid var(--signal);
-  background:var(--panel);border-radius:10px;overflow:hidden;display:flex;align-items:center;height:40px;
-}
-.ticker-tag{
-  flex:none;padding:0 14px;height:100%;display:flex;align-items:center;gap:7px;
-  background:var(--signal);color:#fff;font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.16em;
-}
-.ticker-track{flex:1;overflow:hidden;position:relative;height:100%}
-.ticker-move{position:absolute;white-space:nowrap;display:flex;align-items:center;height:100%;animation:slide 42s linear infinite;font-family:var(--mono);font-size:12px;color:var(--txt-mid)}
-.ticker-move span{padding:0 22px;position:relative}
-.ticker-move span::after{content:"";position:absolute;right:0;top:50%;width:4px;height:4px;border-radius:50%;background:var(--line);transform:translateY(-50%)}
-.ticker-move b{color:var(--txt);font-weight:700}
-@keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  .chart-wrap{
+    margin-top:12px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:14px 14px 10px;
+  }
+  .chart-wrap-title{
+    font-family:'Inter',sans-serif;font-weight:600;
+    font-size:12.5px;
+    color:var(--text);
+    margin-bottom:10px;
+  }
+  .chart-wrap canvas{max-width:100%;}
 
-/* empty state */
-.empty{
-  margin-top:30px;border:1px dashed var(--line);border-radius:18px;background:var(--panel);
-  padding:56px 34px;text-align:center;
-}
-.bars{display:flex;align-items:flex-end;justify-content:center;gap:9px;height:78px;margin-bottom:26px}
-.bars i{width:16px;border-radius:4px 4px 2px 2px;background:var(--line);display:block;animation:bob 2.6s ease-in-out infinite}
-.bars i:nth-child(1){height:34%;animation-delay:0s}
-.bars i:nth-child(2){height:62%;background:var(--signal);animation-delay:.18s}
-.bars i:nth-child(3){height:88%;animation-delay:.36s}
-.bars i:nth-child(4){height:48%;animation-delay:.54s}
-.bars i:nth-child(5){height:70%;background:var(--cyan);animation-delay:.72s}
-@keyframes bob{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.72)}}
-.empty h3{font-family:var(--display);font-size:21px;font-weight:700;letter-spacing:-.4px;margin-bottom:10px}
-.empty p{color:var(--txt-mid);font-size:14px;max-width:52ch;margin:0 auto 22px;line-height:1.6}
-.chips{display:flex;flex-wrap:wrap;gap:9px;justify-content:center}
-.chip{
-  padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--panel-2);
-  color:var(--txt-mid);font-size:12.5px;font-weight:500;cursor:pointer;transition:.16s;
-}
-.chip:hover{color:var(--txt);border-color:var(--signal);background:var(--signal-soft)}
+  .file-card{
+    margin-top:12px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:10px 12px;
+    font-size:12.5px;
+    color:var(--text-dim);
+  }
+  .file-card.ready{color:var(--text);}
+  .file-card.error{color:#c0392b;border-color:rgba(224,72,77,0.3);}
+  .file-icon{font-size:22px;flex-shrink:0;}
+  .file-info{flex:1;min-width:0;}
+  .file-name{font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .file-type{font-size:10.5px;color:var(--text-dim);margin-top:2px;}
+  .file-download{
+    background:var(--accent-ai);color:#fff;font-family:'Inter',sans-serif;
+    font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:20px;
+    text-decoration:none;flex-shrink:0;
+  }
+  .file-download:hover{opacity:0.85;}
 
-/* KPI — broadcast lower-third styling */
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px;margin:22px 0}
-.kpi{
-  position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
-  padding:17px 18px 16px 21px;overflow:hidden;box-shadow:var(--shadow);animation:rise .5s both;
-}
-.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--signal)}
-.kpi:nth-child(2)::before{background:var(--cyan)} .kpi:nth-child(3)::before{background:var(--onair)}
-.kpi:nth-child(4)::before{background:var(--mint)} .kpi:nth-child(5)::before{background:var(--violet)}
-.kpi:nth-child(2){animation-delay:.06s} .kpi:nth-child(3){animation-delay:.12s}
-.kpi:nth-child(4){animation-delay:.18s} .kpi:nth-child(5){animation-delay:.24s}
-@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-.kpi-label{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--txt-dim);font-weight:700;margin-bottom:9px}
-.kpi-val{font-family:var(--display);font-size:30px;font-weight:800;letter-spacing:-1.2px;line-height:1;font-variant-numeric:tabular-nums}
-.kpi-foot{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:var(--txt-dim)}
-.delta{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;font-family:var(--mono);font-size:11px;font-weight:700}
-.delta.up{background:rgba(56,225,164,.13);color:var(--mint)}
-.delta.down{background:var(--signal-soft);color:var(--signal)}
-.delta.flat{background:var(--panel-2);color:var(--txt-dim)}
+  /* ---- Mobile (≤700px): sidebar disembunyikan, header jadi gradasi teal
+     ala aplikasi WhatsApp mobile (bukan WhatsApp Desktop) ---- */
+  @media (max-width: 700px){
+    .sidebar{display:none;}
+    .header{
+      background:linear-gradient(135deg,#128C7E,#075E54);
+      color:#fff;
+      padding:14px 16px calc(14px + env(safe-area-inset-top,0px));
+      border-bottom:none;
+    }
+    .header-title{color:#fff;font-size:15px;}
+    .header-sub{color:rgba(255,255,255,0.82);}
+    .status{color:rgba(255,255,255,0.85);}
+    .btn-icon{color:rgba(255,255,255,0.85);}
+    .btn-icon:hover{background:rgba(255,255,255,0.15);color:#fff;}
+    .btn-icon.active{background:rgba(255,255,255,0.2);color:#fff;}
 
-/* charts */
-.charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
-.card{
-  background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
-  padding:18px 18px 8px;box-shadow:var(--shadow);animation:rise .5s both;min-width:0;
-}
-.card.full{grid-column:1/-1}
-.card-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:4px;flex-wrap:wrap}
-.card-title{font-family:var(--display);font-size:16px;font-weight:700;letter-spacing:-.3px}
-.card-note{font-size:11.5px;color:var(--txt-dim)}
-.card-sub{font-size:12.5px;color:var(--txt-mid);margin:4px 0 10px;line-height:1.5}
-
-/* insights */
-.insights{margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px;box-shadow:var(--shadow)}
-.insights h4{font-family:var(--display);font-size:16px;font-weight:700;margin-bottom:14px;letter-spacing:-.3px}
-.ins{display:flex;gap:13px;padding:11px 0;border-top:1px solid var(--line)}
-.ins:first-of-type{border-top:none;padding-top:0}
-.ins .idx{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--signal);padding-top:2px;flex:none;width:22px}
-.ins-body strong{display:block;font-size:13.5px;font-weight:700;margin-bottom:3px}
-.ins-body p{font-size:13px;color:var(--txt-mid);line-height:1.6}
-
-/* table */
-.tablewrap{margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
-.tablewrap h4{font-family:var(--display);font-size:16px;font-weight:700;padding:18px 20px 12px;letter-spacing:-.3px}
-.scrollx{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{
-  text-align:left;padding:10px 16px;background:var(--panel-2);color:var(--txt-dim);
-  font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;white-space:nowrap;
-  border-top:1px solid var(--line);border-bottom:1px solid var(--line);
-}
-td{padding:11px 16px;border-bottom:1px solid var(--line);color:var(--txt-mid);white-space:nowrap}
-td:first-child{color:var(--txt);font-weight:600}
-tbody tr:hover td{background:var(--panel-2)}
-td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
-
-/* skeleton */
-.skeleton{display:grid;gap:14px;margin-top:22px}
-.sk{background:linear-gradient(90deg,var(--panel) 25%,var(--panel-2) 50%,var(--panel) 75%);background-size:200% 100%;animation:shim 1.4s infinite;border-radius:var(--r);border:1px solid var(--line)}
-@keyframes shim{to{background-position:-200% 0}}
-
-/* ============ CHAT ============ */
-.chat{
-  width:392px;flex:none;background:var(--panel);border-left:1px solid var(--line);
-  display:flex;flex-direction:column;min-height:0;
-}
-.chat-head{
-  padding:13px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;
-  justify-content:space-between;gap:10px;background:var(--panel-2);
-}
-.chat-id{display:flex;align-items:center;gap:11px}
-.avatar{
-  width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none;
-  background:linear-gradient(150deg,var(--cyan),#1B7FA8);color:#04121C;
-  font-family:var(--display);font-weight:800;font-size:13px;
-}
-.chat-id b{font-family:var(--display);font-size:14.5px;font-weight:700;letter-spacing:-.2px;display:block}
-.chat-id span{font-size:11px;color:var(--txt-dim)}
-
-.stream{flex:1;overflow-y:auto;padding:20px 18px;display:flex;flex-direction:column;gap:16px;min-height:0}
-.msg{display:flex;gap:11px;max-width:100%;animation:rise .35s both}
-.msg .who{
-  width:27px;height:27px;border-radius:8px;flex:none;display:grid;place-items:center;
-  font-family:var(--mono);font-size:9.5px;font-weight:700;margin-top:2px;
-}
-.msg.bot .who{background:var(--signal-soft);color:var(--signal);border:1px solid rgba(255,59,71,.3)}
-.msg.me{flex-direction:row-reverse}
-.msg.me .who{background:var(--panel-2);color:var(--txt-dim);border:1px solid var(--line)}
-.bubble{
-  padding:11px 14px;border-radius:13px;font-size:13.5px;line-height:1.65;
-  background:var(--panel-2);border:1px solid var(--line);color:var(--txt-mid);
-  border-top-left-radius:4px;word-break:break-word;overflow-wrap:anywhere;
-}
-.msg.me .bubble{background:var(--signal);border-color:var(--signal);color:#fff;border-top-left-radius:13px;border-top-right-radius:4px}
-.bubble strong{color:var(--txt);font-weight:700}
-.msg.me .bubble strong{color:#fff}
-.bubble ul,.bubble ol{margin:7px 0 7px 17px}
-.bubble li{margin:3px 0}
-.bubble code{font-family:var(--mono);font-size:12px;background:rgba(127,160,220,.16);padding:1px 5px;border-radius:4px}
-.bubble h5{font-family:var(--display);font-size:13.5px;color:var(--txt);margin:9px 0 4px}
-.bubble a{color:var(--cyan)}
-.tagline{margin-top:9px;display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--mint);font-family:var(--mono)}
-
-.typing{display:flex;gap:5px;padding:5px 2px}
-.typing i{width:6px;height:6px;border-radius:50%;background:var(--txt-dim);animation:blink 1.3s infinite}
-.typing i:nth-child(2){animation-delay:.18s} .typing i:nth-child(3){animation-delay:.36s}
-@keyframes blink{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
-
-.suggest{display:flex;gap:7px;padding:0 16px 10px;flex-wrap:wrap}
-.suggest .chip{font-size:11.5px;padding:6px 11px}
-
-.composer{padding:13px 16px 16px;border-top:1px solid var(--line);background:var(--panel)}
-.field{display:flex;align-items:flex-end;gap:9px;background:var(--panel-2);border:1px solid var(--line);border-radius:13px;padding:8px 8px 8px 14px;transition:.16s}
-.field:focus-within{border-color:var(--signal);box-shadow:0 0 0 3px var(--signal-soft)}
-.field textarea{
-  flex:1;background:none;border:none;outline:none;resize:none;font-size:13.5px;line-height:1.5;
-  max-height:120px;padding:6px 0;color:var(--txt);
-}
-.field textarea::placeholder{color:var(--txt-dim)}
-.send{
-  width:36px;height:36px;border-radius:10px;border:none;background:var(--signal);color:#fff;
-  display:grid;place-items:center;cursor:pointer;flex:none;transition:.16s;
-}
-.send:hover{filter:brightness(1.1)} .send:disabled{opacity:.4;cursor:not-allowed}
-.send svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.hint{font-size:10.5px;color:var(--txt-dim);margin-top:8px;text-align:center;font-family:var(--mono)}
-
-/* ============ MODAL ============ */
-.veil{position:fixed;inset:0;background:rgba(4,8,18,.72);backdrop-filter:blur(6px);display:none;place-items:center;z-index:60;padding:20px}
-.veil.on{display:grid}
-.modal{
-  width:min(500px,100%);background:var(--panel);border:1px solid var(--line);border-radius:18px;
-  padding:26px;box-shadow:0 40px 80px -30px rgba(0,0,0,.8);animation:rise .3s both;max-height:90vh;overflow-y:auto;
-}
-.modal h3{font-family:var(--display);font-size:20px;font-weight:800;letter-spacing:-.5px;margin-bottom:6px}
-.modal p.lead{font-size:13px;color:var(--txt-mid);line-height:1.6;margin-bottom:20px}
-.f{margin-bottom:15px}
-.f label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--txt-dim);font-weight:700;margin-bottom:7px}
-.f input,.f select{
-  width:100%;padding:11px 13px;border-radius:10px;background:var(--panel-2);
-  border:1px solid var(--line);font-size:13.5px;outline:none;transition:.16s;
-}
-.f input:focus,.f select:focus{border-color:var(--signal);box-shadow:0 0 0 3px var(--signal-soft)}
-.f small{display:block;margin-top:6px;font-size:11.5px;color:var(--txt-dim);line-height:1.5}
-.f small a{color:var(--cyan)}
-.modal-foot{display:flex;gap:9px;justify-content:flex-end;margin-top:22px;flex-wrap:wrap}
-
-/* toast */
-.toast{
-  position:fixed;bottom:22px;left:50%;transform:translate(-50%,20px);opacity:0;pointer-events:none;
-  background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--mint);
-  padding:12px 18px;border-radius:11px;font-size:13px;box-shadow:var(--shadow);z-index:80;transition:.25s;
-}
-.toast.on{opacity:1;transform:translate(-50%,0)}
-.toast.bad{border-left-color:var(--signal)}
-
-/* mobile */
-.tabs{display:none;gap:6px;padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
-.tabs button{flex:1;padding:9px;border-radius:9px;border:1px solid var(--line);background:transparent;color:var(--txt-dim);font-size:12.5px;font-weight:700;cursor:pointer}
-.tabs button.on{background:var(--signal);border-color:var(--signal);color:#fff}
-@media(max-width:1080px){.charts{grid-template-columns:1fr}.card.full{grid-column:auto}}
-@media(max-width:900px){
-  .tabs{display:flex}
-  .workspace{position:relative}
-  .chat{position:absolute;inset:0;width:100%;border-left:none}
-  body[data-view="chat"] .canvas-wrap{display:none}
-  body[data-view="dash"] .chat{display:none}
-  .canvas{padding:18px 14px 40px}
-  .brand-sub{display:none}
-  .tools .label{display:none}
-  .btn{padding:8px 10px}
-}
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+    .chat{padding:12px 10px;}
+    .msg{max-width:82%;}
+    textarea#userInput{font-size:16px;} /* cegah auto-zoom iOS Safari */
+  }
 </style>
 </head>
-<body data-view="dash">
+<body>
 
-<!-- TOPBAR -->
-<header class="topbar">
-  <div class="brand">
-    <div class="mark">Ai</div>
-    <div class="brand-txt">
-      <div class="brand-name">Ai<em>News</em></div>
-      <div class="brand-sub">TV Share Intelligence</div>
+<div class="app">
+
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-avatar">CD</div>
+      <div>
+        <div class="sidebar-title">Chatbot Data</div>
+        <div class="sidebar-sub">Vercel + Gemini</div>
+      </div>
     </div>
-  </div>
-  <div class="tools">
-    <div class="onair" id="status"><span class="dot"></span><span id="statusTxt">Menyambung</span></div>
-    <button class="btn ghost" onclick="toggleTheme()" title="Ganti tema">
-      <svg viewBox="0 0 24 24" id="themeIcon"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
-      <span class="label">Tema</span>
-    </button>
-    <button class="btn" onclick="openSettings()">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9v0a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-      <span class="label">Pengaturan</span>
-    </button>
-    <button class="btn primary" onclick="exportDashboard()" id="btnExport">
-      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
-      <span class="label">Unduh gambar</span>
-    </button>
-  </div>
-</header>
-
-<div class="tabs">
-  <button class="on" onclick="setView('dash',this)">Dashboard</button>
-  <button onclick="setView('chat',this)">Asisten</button>
-</div>
-
-<!-- WORKSPACE -->
-<div class="workspace">
-
-  <!-- CANVAS -->
-  <div class="canvas-wrap">
-    <div class="canvas" id="canvas">
-      <div class="canvas-head">
-        <div>
-          <div class="eyebrow" id="eyebrow">Ruang kendali data</div>
-          <h1 class="title" id="dashTitle">Belum ada dashboard</h1>
-          <p class="subtitle" id="dashSub">Minta apa pun ke asisten di panel kanan — rekap share, perbandingan channel, tren mingguan, program terkuat — dan hasilnya digambar di sini.</p>
-        </div>
-        <div class="tabpick" id="tabPick" hidden>
-          <label for="tabSelect">Tab aktif</label>
-          <select id="tabSelect" onchange="pickTab(this.value)"></select>
-        </div>
-      </div>
-
-      <div class="ticker">
-        <div class="ticker-tag"><span style="width:6px;height:6px;border-radius:50%;background:#fff;display:block;animation:pulse 1.8s infinite"></span>LIVE</div>
-        <div class="ticker-track"><div class="ticker-move" id="tickerMove"><span>Menunggu sumber data terhubung…</span></div></div>
-      </div>
-
-      <div id="content">
-        <div class="empty">
-          <div class="bars"><i></i><i></i><i></i><i></i><i></i></div>
-          <h3>Panel ini masih kosong</h3>
-          <p>Mulai dengan satu pertanyaan. Asisten membaca isi spreadsheet, menghitung angkanya, lalu menyusun kartu KPI, grafik, dan catatan temuan.</p>
-          <div class="chips" id="starterChips"></div>
+    <div class="sidebar-search">🔍 Cari...</div>
+    <div class="chat-list">
+      <div class="chat-list-item">
+        <div class="chat-list-avatar">A</div>
+        <div class="chat-list-info">
+          <div class="chat-list-name">Asisten Data</div>
+          <div class="chat-list-preview">Dibekali data & instruksi khusus dari kamu</div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- CHAT -->
-  <aside class="chat">
-    <div class="chat-head">
-      <div class="chat-id">
-        <div class="avatar">AI</div>
-        <div><b>Asisten AiNews</b><span id="modelBadge">gemini</span></div>
+  <div class="main-pane">
+    <div class="header">
+      <div>
+        <div class="header-title">Chatbot Data</div>
+        <div class="header-sub">Ditenagai Google Gemini, dibekali data & instruksi khusus</div>
       </div>
-      <button class="btn ghost" onclick="clearChat()" title="Mulai percakapan baru">
-        <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 109-9 9 9 0 00-6.36 2.64L3 8"/><path d="M3 3v5h5"/></svg>
-      </button>
-    </div>
-
-    <div class="stream" id="stream"></div>
-    <div class="suggest" id="suggest"></div>
-
-    <div class="composer">
-      <div class="field">
-        <textarea id="input" rows="1" placeholder="Tanya apa saja tentang data TV Share…"></textarea>
-        <button class="send" id="send" onclick="send()" aria-label="Kirim">
-          <svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-        </button>
+      <div class="header-actions">
+        <button class="btn-icon" id="speakToggleBtn" type="button">🔇</button>
+        <div class="status"><span class="status-dot"></span>terhubung</div>
       </div>
-      <div class="hint">Enter kirim · Shift+Enter baris baru</div>
-    </div>
-  </aside>
-</div>
-
-<!-- SETTINGS -->
-<div class="veil" id="veil">
-  <div class="modal">
-    <h3 id="modalTitle">Pengaturan</h3>
-    <p class="lead" id="modalLead">Kunci API disimpan di browser ini saja dan tidak dikirim ke mana pun selain Google.</p>
-
-    <div class="f">
-      <label>Gemini API Key</label>
-      <input type="password" id="fKey" placeholder="AIza…" autocomplete="off">
-      <small>Ambil di <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>.</small>
     </div>
 
-    <div class="f">
-      <label>Model</label>
-      <select id="fModel">
-        <option value="gemini-2.5-flash">gemini-2.5-flash — cepat, hemat</option>
-        <option value="gemini-2.5-pro">gemini-2.5-pro — analisis paling dalam</option>
-        <option value="gemini-2.0-flash">gemini-2.0-flash — cadangan stabil</option>
-        <option value="gemini-flash-latest">gemini-flash-latest — versi terbaru</option>
-      </select>
-      <small>Kalau model dipakai tidak tersedia di akun Anda, sistem otomatis pindah ke model lain yang aktif.</small>
+    <div class="chat" id="chat">
+      <div class="empty-state" id="emptyState">
+        <b>Mulai ngobrol</b><br>
+        Tanya apa aja — chatbot ini sudah dibekali data & instruksi dari pemiliknya.
+      </div>
     </div>
 
-    <div class="f">
-      <label>URL Web App (Apps Script)</label>
-      <input type="text" id="fUrl" placeholder="https://script.google.com/macros/s/…/exec">
-      <small>Alamat deployment Apps Script, berakhiran <code>/exec</code>.</small>
-    </div>
-
-    <div class="f">
-      <label>Token</label>
-      <input type="password" id="fToken" placeholder="token dari Code.gs" autocomplete="off">
-      <small>Harus sama persis dengan nilai <code>TOKEN</code> di baris pertama skrip.</small>
-    </div>
-
-    <div class="modal-foot">
-      <button class="btn ghost" onclick="closeSettings()">Batal</button>
-      <button class="btn" onclick="wipeAll()">Hapus data tersimpan</button>
-      <button class="btn primary" onclick="saveSettings()">Simpan &amp; muat data</button>
+    <div class="input-row">
+      <button class="btn-mic" id="micBtn" type="button" title="Rekam suara">🎤</button>
+      <textarea id="userInput" placeholder="Tulis pesan... (Enter untuk kirim, Shift+Enter baris baru)" rows="1"></textarea>
+      <button class="btn-send" id="sendBtn" title="Kirim" aria-label="Kirim">➤</button>
     </div>
   </div>
+
 </div>
 
-<div class="toast" id="toast"></div>
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8/build/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3/dist/pptxgen.bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4/dist/exceljs.min.js"></script>
 <script>
-/* ============================================================
-   STATE
-============================================================ */
-const DEFAULT_URL = "";
-const MODEL_FALLBACKS = ["gemini-2.5-flash","gemini-2.0-flash","gemini-flash-latest","gemini-2.5-pro"];
+  const chatEl = document.getElementById('chat');
+  const userInput = document.getElementById('userInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const micBtn = document.getElementById('micBtn');
+  const speakToggleBtn = document.getElementById('speakToggleBtn');
 
-const S = {
-  key:  localStorage.getItem('ai_key') || "",
-  model:localStorage.getItem('ai_model') || "gemini-2.5-flash",
-  url:  localStorage.getItem('ai_url') || DEFAULT_URL,
-  token:localStorage.getItem('ai_token') || "",
-  theme:localStorage.getItem('ai_theme') || "dark",
-  catalog:[],        // [{name, rows, columns}]
-  loaded:{},         // cache isi tab: { namaTab: {headers, rows, csv, profile} }
-  active:"",         // tab yang sedang tampil di pemilih
-  busy:false,
-  history:[], charts:[], dashboard:null
-};
+  let history = []; // {role, content}
+  let busy = false;
 
-const STARTERS = [
-  "Buat dashboard performa TV Share",
-  "Bandingkan iNews dengan kompetitor",
-  "Tren share per minggu",
-  "Program dengan share tertinggi",
-  "Ringkas 5 temuan utama"
-];
+  // ---- Fitur suara: input suara (STT) + baca balasan (TTS) ----
+  // Keduanya pakai Web Speech API bawaan browser — gratis, tanpa API key
+  // tambahan. Dukungan browser bervariasi: STT paling stabil di Chrome/Edge
+  // (desktop & Android) dan Safari iOS 14.5+; kurang/tidak didukung Firefox.
+  const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognition = null;
+  let listening = false;
+  let autoSpeak = localStorage.getItem('autoSpeak') === '1';
 
-/* Boot dijalankan di baris paling bawah file — lihat init(). */
-
-/* ============================================================
-   UI HELPERS
-============================================================ */
-function setStatus(text, kind){
-  document.getElementById('statusTxt').textContent = text;
-  document.getElementById('status').className = "onair" + (kind ? " "+kind : "");
-}
-function toast(msg, bad){
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.className = "toast on" + (bad ? " bad" : "");
-  clearTimeout(t._t); t._t = setTimeout(()=>t.className="toast", 3200);
-}
-function setView(v, el){
-  document.body.dataset.view = v;
-  document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('on'));
-  el.classList.add('on');
-}
-function toggleTheme(){
-  S.theme = S.theme === 'dark' ? 'light' : 'dark';
-  document.documentElement.dataset.theme = S.theme;
-  localStorage.setItem('ai_theme', S.theme);
-  if (S.dashboard) drawDashboard(S.dashboard);   // gambar ulang chart dengan warna tema baru
-}
-function renderStarters(){
-  const html = STARTERS.map(s=>`<button class="chip" onclick="quick(this)">${esc(s)}</button>`).join('');
-  document.getElementById('starterChips').innerHTML = html;
-  document.getElementById('suggest').innerHTML = STARTERS.slice(0,3).map(s=>`<button class="chip" onclick="quick(this)">${esc(s)}</button>`).join('');
-}
-function quick(el){ document.getElementById('input').value = el.textContent; send(); }
-function esc(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-
-/* Angka: "15,4" / "15.4" / "1.234" / "12%" -> Number. Function declaration supaya
-   bisa dipakai fungsi mana pun tanpa tergantung urutan baris. */
-function toNum(v){
-  if(v===null||v===undefined) return NaN;
-  const s = String(v).replace(/[%\s]/g,'').replace(/\.(?=\d{3}\b)/g,'').replace(',', '.');
-  return s==="" ? NaN : Number(s);
-}
-function fmt(v){
-  const n = Number(v);
-  if(isNaN(n)) return v;
-  return Number.isInteger(n) ? n.toLocaleString('id-ID') : n.toFixed(2).replace('.',',');
-}
-
-/* settings modal */
-function openSettings(){
-  document.getElementById('fKey').value = S.key;
-  document.getElementById('fModel').value = S.model;
-  document.getElementById('fUrl').value = S.url;
-  document.getElementById('fToken').value = S.token;
-  document.getElementById('veil').classList.add('on');
-}
-function closeSettings(){ document.getElementById('veil').classList.remove('on'); }
-function saveSettings(){
-  S.key   = document.getElementById('fKey').value.trim();
-  S.model = document.getElementById('fModel').value;
-  S.url   = document.getElementById('fUrl').value.trim().replace(/\?.*$/,'');
-  S.token = document.getElementById('fToken').value.trim();
-  localStorage.setItem('ai_key',S.key); localStorage.setItem('ai_model',S.model);
-  localStorage.setItem('ai_url',S.url); localStorage.setItem('ai_token',S.token);
-  document.getElementById('modelBadge').textContent = S.model;
-  closeSettings();
-  if (!S.key){ setStatus("Perlu API key","warn"); toast("Kunci API masih kosong",true); return; }
-  if (!S.url){ setStatus("Perlu URL Web App","warn"); toast("URL Web App masih kosong",true); return; }
-  toast("Pengaturan disimpan");
-  S.loaded = {}; S.catalog = [];
-  loadCatalog();
-}
-function wipeAll(){
-  ['ai_key','ai_model','ai_url','ai_token'].forEach(k=>localStorage.removeItem(k));
-  S.key=""; S.model="gemini-2.5-flash"; S.url=""; S.token="";
-  S.catalog=[]; S.loaded={};
-  openSettings(); setStatus("Perlu API key","warn"); toast("Data tersimpan dihapus");
-}
-document.getElementById('veil').addEventListener('click', e=>{ if(e.target.id==='veil') closeSettings(); });
-document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeSettings(); });
-
-/* ============================================================
-   DATA: katalog tab + isi tab (Apps Script Web App)
-============================================================ */
-function apiUrl(params){
-  const q = new URLSearchParams({ token:S.token, ...params });
-  return `${S.url}?${q.toString()}`;
-}
-
-/* Langkah 1: tarik daftar semua tab. Ringan — hanya nama, jumlah baris, kolom. */
-async function loadCatalog(){
-  if(!S.url){ setStatus("Perlu URL Web App","warn"); return; }
-  setStatus("Membaca daftar tab","warn");
-  try{
-    const res = await fetch(apiUrl({mode:'catalog'}), {redirect:'follow'});
-    const raw = await res.text();
-    if(/^\s*</.test(raw)) throw new Error("Google mengembalikan halaman HTML, bukan JSON — akses deployment kemungkinan bukan 'Anyone'");
-    const data = JSON.parse(raw);
-    if(data.error) throw new Error(data.error);
-
-    S.catalog = (data.tabs||[]).filter(t => t.rows > 0);
-    if(!S.catalog.length) throw new Error("Tidak ada tab berisi data");
-
-    fillTabPicker();
-    const total = S.catalog.reduce((a,t)=>a+t.rows,0);
-    setStatus(`${S.catalog.length} tab · ${total} baris`,"ok");
-    fillTicker();
-
-    const list = S.catalog.slice(0,8).map(t=>`• **${t.name}** — ${t.rows} baris`).join('\n');
-    bot(`Terhubung ke **${data.title||'spreadsheet'}**.\n\n${S.catalog.length} tab terbaca:\n${list}${S.catalog.length>8?'\n• …':''}\n\nSaya ambil isi tab yang relevan otomatis begitu Anda bertanya.`);
-
-    /* muat satu tab pertama supaya dashboard bisa langsung dipakai */
-    await fetchTab(S.catalog[0].name);
-  }catch(err){
-    setStatus("Gagal terhubung","");
-    bot("**Web App tidak bisa dibaca.**\n\nDetail: `"+err.message+"`\n\nPeriksa: token cocok dengan `Code.gs`, *Who has access* diset **Anyone**, dan setelah mengedit skrip sudah **re-deploy sebagai New version**.");
+  function updateSpeakToggleUI() {
+    speakToggleBtn.textContent = autoSpeak ? '🔊' : '🔇';
+    speakToggleBtn.classList.toggle('active', autoSpeak);
+    speakToggleBtn.title = autoSpeak ? 'Baca balasan otomatis: aktif (klik untuk matikan)' : 'Baca balasan otomatis: nonaktif (klik untuk aktifkan)';
   }
-}
+  updateSpeakToggleUI();
 
-/* Langkah 2: tarik isi satu tab, lalu cache. */
-async function fetchTab(name){
-  if(S.loaded[name]) return S.loaded[name];
-  const res = await fetch(apiUrl({mode:'data', sheet:name}), {redirect:'follow'});
-  const raw = await res.text();
-  if(/^\s*</.test(raw)) throw new Error("respons bukan JSON");
-  const data = JSON.parse(raw);
-  if(data.error) throw new Error(data.error);
-
-  const values = (data.sheets && data.sheets[0] && data.sheets[0].values) || [];
-  const headers = values.shift() || [];
-  const rows = values.filter(r => r.some(c => String(c).trim() !== ""));
-
-  const csv = [headers, ...rows]
-    .map(r => r.map(c => /[",\n]/.test(String(c)) ? '"'+String(c).replace(/"/g,'""')+'"' : c).join(','))
-    .join('\n');
-
-  S.loaded[name] = { headers, rows, csv, profile: profileData(headers, rows) };
-  if(!S.active){ S.active = name; syncTabPicker(); }
-  return S.loaded[name];
-}
-
-function fillTabPicker(){
-  const sel = document.getElementById('tabSelect');
-  sel.innerHTML = S.catalog.map(t=>`<option value="${esc(t.name)}">${esc(t.name)} (${t.rows})</option>`).join('');
-  document.getElementById('tabPick').hidden = false;
-  syncTabPicker();
-}
-function syncTabPicker(){
-  const sel = document.getElementById('tabSelect');
-  if(S.active) sel.value = S.active;
-}
-async function pickTab(name){
-  S.active = name;
-  try{
-    const d = await fetchTab(name);
-    fillTicker();
-    toast(`Tab "${name}" dimuat — ${d.rows.length} baris`);
-    bot(`Fokus dipindah ke tab **${name}** (${d.rows.length} baris, ${d.headers.length} kolom). Pertanyaan berikutnya saya jawab dari tab ini kecuali Anda menyebut tab lain.`);
-  }catch(err){ toast("Gagal memuat tab: "+err.message,true); }
-}
-
-function parseCSV(text){
-  const rows=[]; let row=[], cell="", q=false;
-  for(let i=0;i<text.length;i++){
-    const c=text[i];
-    if(q){
-      if(c==='"'){ if(text[i+1]==='"'){cell+='"';i++;} else q=false; }
-      else cell+=c;
-    }else{
-      if(c==='"') q=true;
-      else if(c===','){ row.push(cell); cell=""; }
-      else if(c==='\n'){ row.push(cell); rows.push(row); row=[]; cell=""; }
-      else if(c!=='\r') cell+=c;
-    }
-  }
-  if(cell!==""||row.length){ row.push(cell); rows.push(row); }
-  return rows;
-}
-
-/* ringkasan statistik supaya jawaban model akurat, bukan tebakan */
-function profileData(headers, rows){
-  const lines=[];
-  headers.forEach((h,i)=>{
-    const vals = rows.map(r=>r[i]).filter(v=>String(v).trim()!=="");
-    if(!vals.length){ lines.push(`- "${h}": kosong`); return; }
-    const nums = vals.map(toNum).filter(n=>!isNaN(n));
-    if(nums.length / vals.length > 0.6){
-      const sum = nums.reduce((a,b)=>a+b,0);
-      lines.push(`- "${h}" (numerik): n=${nums.length}, min=${Math.min(...nums)}, max=${Math.max(...nums)}, rata2=${(sum/nums.length).toFixed(2)}, total=${sum.toFixed(2)}`);
-    }else{
-      const map={}; vals.forEach(v=>map[v]=(map[v]||0)+1);
-      const top = Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,10)
-        .map(([k,c])=>`${k} (${c})`).join(', ');
-      lines.push(`- "${h}" (kategori, ${Object.keys(map).length} unik): ${top}`);
-    }
+  speakToggleBtn.addEventListener('click', () => {
+    autoSpeak = !autoSpeak;
+    localStorage.setItem('autoSpeak', autoSpeak ? '1' : '0');
+    updateSpeakToggleUI();
+    if (!autoSpeak && 'speechSynthesis' in window) window.speechSynthesis.cancel();
   });
-  return lines.join('\n');
-}
 
-function fillTicker(){
-  const facts=[];
-  const d = S.loaded[S.active];
-  if(d){
-    d.headers.forEach((h,i)=>{
-      const nums = d.rows.map(r=>toNum(r[i])).filter(n=>!isNaN(n));
-      if(nums.length > d.rows.length*0.6 && nums.length){
-        const avg = nums.reduce((a,b)=>a+b,0)/nums.length;
-        facts.push(`${h} rata-rata <b>${avg.toFixed(2)}</b>`);
-        facts.push(`${h} tertinggi <b>${Math.max(...nums)}</b>`);
+  function speak(text) {
+    if (!('speechSynthesis' in window) || !text) return;
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'id-ID';
+    window.speechSynthesis.speak(utter);
+  }
+
+  if (SpeechRecognitionCtor) {
+    recognition = new SpeechRecognitionCtor();
+    recognition.lang = 'id-ID';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.addEventListener('result', (e) => {
+      const transcript = e.results[0][0].transcript;
+      userInput.value = transcript;
+      send();
+    });
+    recognition.addEventListener('end', () => {
+      listening = false;
+      micBtn.classList.remove('listening');
+    });
+    recognition.addEventListener('error', () => {
+      listening = false;
+      micBtn.classList.remove('listening');
+    });
+
+    micBtn.addEventListener('click', () => {
+      if (busy) return;
+      if (listening) {
+        recognition.stop();
+        return;
+      }
+      listening = true;
+      micBtn.classList.add('listening');
+      try {
+        recognition.start();
+      } catch (e) {
+        listening = false;
+        micBtn.classList.remove('listening');
       }
     });
-    facts.unshift(`Tab aktif <b>${S.active}</b> · <b>${d.rows.length}</b> baris`);
+  } else {
+    micBtn.disabled = true;
+    micBtn.title = 'Browser ini tidak mendukung input suara';
   }
-  facts.unshift(`<b>${S.catalog.length}</b> tab terhubung`);
-  facts.push(`Sumber <b>Google Spreadsheet</b>`);
-  facts.push(`Diperbarui <b>${new Date().toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'})}</b>`);
-  const one = facts.slice(0,10).map(f=>`<span>${f}</span>`).join('');
-  document.getElementById('tickerMove').innerHTML = one + one;
-}
 
-/* ============================================================
-   CHAT
-============================================================ */
-const input = document.getElementById('input');
-input.addEventListener('keydown', e=>{
-  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); send(); }
-});
-input.addEventListener('input', autoGrow);
-function autoGrow(){ input.style.height='auto'; input.style.height=Math.min(input.scrollHeight,120)+'px'; }
-
-function me(text){
-  const s=document.getElementById('stream');
-  s.insertAdjacentHTML('beforeend',
-    `<div class="msg me"><div class="who">ME</div><div class="bubble">${esc(text)}</div></div>`);
-  s.scrollTop=s.scrollHeight;
-}
-function bot(md){
-  const s=document.getElementById('stream');
-  const d=document.createElement('div');
-  d.className='msg bot';
-  d.innerHTML=`<div class="who">AI</div><div class="bubble">${mdToHtml(md)}</div>`;
-  s.appendChild(d); s.scrollTop=s.scrollHeight;
-  return d.querySelector('.bubble');
-}
-function thinking(){
-  const b=bot("");
-  b.innerHTML=`<div class="typing"><i></i><i></i><i></i></div>`;
-  return b;
-}
-function clearChat(){
-  document.getElementById('stream').innerHTML='';
-  S.history=[];
-  bot("Percakapan dimulai ulang. Data spreadsheet tetap terhubung.");
-}
-
-function mdToHtml(md){
-  let h = esc(md);
-  h = h.replace(/```([\s\S]*?)```/g, (m,c)=>`<pre><code>${c.trim()}</code></pre>`);
-  h = h.replace(/^###\s+(.*)$/gm,'<h5>$1</h5>').replace(/^##\s+(.*)$/gm,'<h5>$1</h5>');
-  h = h.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
-  h = h.replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<em>$2</em>');
-  h = h.replace(/`([^`\n]+)`/g,'<code>$1</code>');
-  h = h.replace(/^\s*[-•]\s+(.*)$/gm,'<li>$1</li>');
-  h = h.replace(/^\s*\d+\.\s+(.*)$/gm,'<li>$1</li>');
-  h = h.replace(/(<li>[\s\S]*?<\/li>)(?!\s*<li>)/g, m => m.includes('<ul>') ? m : '<ul>'+m+'</ul>');
-  h = h.replace(/<\/ul>\s*<ul>/g,'');
-  h = h.replace(/\n{2,}/g,'<br><br>').replace(/\n/g,'<br>');
-  h = h.replace(/<br>\s*(<ul>|<\/ul>|<h5>)/g,'$1');
-  return h;
-}
-
-async function send(){
-  const text = input.value.trim();
-  if(!text || S.busy) return;
-  me(text); input.value=''; autoGrow();
-
-  /* API key ditempel langsung di chat */
-  if(/^AIza[\w-]{20,}$/.test(text)){
-    S.key = text; localStorage.setItem('ai_key',S.key);
-    bot("Kunci API tersimpan. Menghubungkan ke spreadsheet…");
-    return loadCatalog();
-  }
-  if(!S.key){ bot("Belum ada API key. Buka **Pengaturan** atau tempel key Gemini Anda di sini."); return openSettings(); }
-  if(!S.url){ bot("URL Web App belum diisi. Buka **Pengaturan** untuk memasukkannya."); return openSettings(); }
-  if(!S.catalog.length){ bot("Daftar tab belum siap. Saya coba hubungkan ulang."); return loadCatalog(); }
-
-  S.busy=true; document.getElementById('send').disabled=true;
-  const bubble = thinking();
-  const wantsViz = /dashboard|visual|grafik|chart|diagram|rekap|ringkas|bandingkan|tren|trend|analis|performa|kpi|tabel/i.test(text);
-  if(wantsViz) showSkeleton();
-
-  try{
-    /* Langkah 1: model memilih tab mana yang dibutuhkan */
-    let tabs = [S.active || S.catalog[0].name];
-    if(S.catalog.length > 1){
-      bubble.innerHTML = `<div class="typing"><i></i><i></i><i></i></div>`;
-      tabs = await chooseTabs(text);
-    }
-
-    /* Langkah 2: tarik isi tab terpilih, lalu jawab */
-    const packs = [];
-    for(const name of tabs.slice(0,3)){
-      try{ packs.push({ name, ...(await fetchTab(name)) }); }catch(e){ /* tab dilewati */ }
-    }
-    if(!packs.length) throw new Error("Tidak ada tab yang bisa dibaca.");
-    S.active = packs[0].name; syncTabPicker(); fillTicker();
-
-    const reply = await askGemini(text, packs);
-    const { prose, dash } = splitReply(reply);
-    bubble.innerHTML = mdToHtml(prose || "Dashboard sudah digambar di panel kiri.");
-    const src = packs.map(p=>p.name).join(', ');
-    bubble.insertAdjacentHTML('beforeend',
-      `<div class="tagline" style="color:var(--txt-dim)">Sumber: ${esc(src)}</div>`);
-    if(dash){
-      drawDashboard(dash);
-      bubble.insertAdjacentHTML('beforeend','<div class="tagline">▲ Dashboard diperbarui</div>');
-      if(window.innerWidth<=900) toast("Dashboard siap — buka tab Dashboard");
-    } else if(wantsViz){
-      restoreCanvas();
-    }
-    S.history.push({role:'user',text}, {role:'model',text:reply});
-    if(S.history.length>12) S.history = S.history.slice(-12);
-  }catch(err){
-    bubble.innerHTML = mdToHtml("**Permintaan gagal.** "+err.message+"\n\nCek kunci API dan koneksi, lalu coba lagi.");
-    restoreCanvas(); toast("Permintaan gagal",true);
-  }finally{
-    S.busy=false; document.getElementById('send').disabled=false;
-    document.getElementById('stream').scrollTop = 1e9;
-  }
-}
-
-/* Panggilan ringan: kirim katalog saja, minta model menyebut tab yang relevan. */
-async function chooseTabs(question){
-  const cat = S.catalog.map(t =>
-    `- "${t.name}" — ${t.rows} baris, kolom: ${t.columns.slice(0,12).join(', ')}`).join('\n');
-
-  const prompt = `Spreadsheet ini punya beberapa tab:
-${cat}
-
-Pertanyaan pengguna: "${question}"
-
-Tab mana yang datanya dibutuhkan untuk menjawab? Balas HANYA array JSON berisi nama tab, maksimal 3, urut dari yang paling relevan. Contoh: ["Januari","Februari"]. Tanpa penjelasan apa pun.`;
-
-  try{
-    const raw = await callGemini([{role:'user',parts:[{text:prompt}]}], null, 200);
-    const m = raw.match(/\[[\s\S]*?\]/);
-    if(m){
-      const picked = JSON.parse(m[0])
-        .filter(n => S.catalog.some(t => t.name === n));
-      if(picked.length) return picked;
-    }
-  }catch(e){ /* jatuh ke default */ }
-  return [S.active || S.catalog[0].name];
-}
-
-/* ============================================================
-   GEMINI
-============================================================ */
-function buildPrompt(packs){
-  const budget = Math.floor(45000 / packs.length);
-  const blocks = packs.map(p => {
-    const csv = p.csv.length > budget ? p.csv.slice(0,budget)+"\n…(dipotong)" : p.csv;
-    return `### TAB: "${p.name}" (${p.rows.length} baris)
-Ringkasan kolom:
-${p.profile}
-
-Data CSV:
---- MULAI ${p.name} ---
-${csv}
---- SELESAI ${p.name} ---`;
-  }).join('\n\n');
-
-  const others = S.catalog.map(t=>t.name).filter(n=>!packs.some(p=>p.name===n));
-
-  return `Kamu "AiNews Bot", analis data TV Share untuk redaksi iNews. Jawab dalam Bahasa Indonesia yang ringkas, tegas, dan berbasis angka.
-
-${blocks}
-${others.length ? `\nTab lain yang ada di spreadsheet tapi TIDAK dimuat sekarang: ${others.join(', ')}. Kalau pertanyaan sebenarnya butuh salah satu tab itu, katakan tab mana yang perlu dibuka — jangan menebak isinya.` : ''}
-
-ATURAN
-1. Semua angka WAJIB berasal dari data di atas. Kalau informasi tidak ada, katakan tidak tersedia — jangan mengarang.
-2. Sebutkan nama tab saat mengutip angka bila lebih dari satu tab dimuat.
-3. Jawab persis yang ditanya. Pertanyaan singkat dijawab singkat; jangan tempelkan dashboard kalau tidak diminta atau tidak relevan.
-4. Jawaban teks maksimal 6 kalimat atau 6 poin. Sebutkan angka konkret, bukan kesan umum.
-5. Kalau pengguna minta dashboard, visualisasi, grafik, rekap, perbandingan, tren, atau analisis performa: tulis jawaban teks singkat, LALU lampirkan satu blok JSON di paling akhir dengan penanda $$DASH.
-
-FORMAT BLOK (JSON valid, tanpa komentar, tanpa markdown fence):
-$$DASH
-{
-  "title": "Judul dashboard",
-  "subtitle": "Satu kalimat konteks: periode, sumber, cakupan",
-  "kpis": [
-    {"label":"Share iNews","value":"15,4%","delta":"+1,2 pts","trend":"up","note":"vs periode lalu"}
-  ],
-  "charts": [
-    {
-      "title":"Tren share per channel",
-      "subtitle":"Opsional, satu kalimat",
-      "type":"line",
-      "span":"full",
-      "labels":["Jan 2026","Feb 2026","Mar 2026"],
-      "series":[
-        {"name":"INEWS","data":[4.04,3.81,5.41]},
-        {"name":"TVONE","data":[2.71,2.82,4.26]},
-        {"name":"KOMPASTV","data":[1.76,1.61,2.58]}
-      ],
-      "suffix":"%"
-    }
-  ],
-  "insights":[{"title":"Judul temuan","text":"Penjelasan dengan angka."}],
-  "table":{"title":"Rincian","columns":["Channel","Share"],"rows":[["iNews","15,4"]]}
-}
-$$DASH
-
-KETENTUAN BLOK
-- type: line | bar | column | area | donut | pie | radar | scatter. Untuk perbandingan antar periode (bulan/minggu), SELALU pakai "line" — satu seri per channel, digambar sebagai kurva berarsir.
-- Nama seri harus nama channel apa adanya ("INEWS", "TVONE", "KOMPASTV", "METRO") supaya warnanya otomatis mengikuti warna stasiun.
-- "labels" untuk tren waktu ditulis "Bulan Tahun", contoh: ["Jan 2026","Feb 2026","Mar 2026"].
-- span: "full" (selebar panel) atau "half". Maksimal 4 grafik, 5 KPI, 5 insight, 12 baris tabel.
-- Untuk donut/pie, "series" berupa array angka: "series":[15.4,12.1,9.8].
-- trend: "up" | "down" | "flat". Hilangkan "delta"/"note" bila tidak ada pembanding di data.
-- Bagian "insights" dan "table" opsional. Kalau tidak ada dashboard yang perlu digambar, jangan tulis $$DASH sama sekali.`;
-}
-
-async function askGemini(userText, packs){
-  const contents = [];
-  S.history.forEach(h => contents.push({role:h.role, parts:[{text:h.text}]}));
-  contents.push({role:'user', parts:[{text:userText}]});
-  return callGemini(contents, buildPrompt(packs), 3000);
-}
-
-/* Pemanggil dasar: dipakai untuk pemilihan tab (tanpa system prompt) maupun analisis penuh. */
-async function callGemini(contents, systemText, maxTokens){
-  const body = {
-    contents,
-    generationConfig:{ temperature:0.35, topP:0.9, maxOutputTokens: maxTokens || 3000 }
-  };
-  if(systemText) body.system_instruction = { parts:[{text:systemText}] };
-
-  const models = [S.model, ...MODEL_FALLBACKS.filter(m=>m!==S.model)];
-  let lastErr = "Model tidak tersedia.";
-
-  for(const model of models){
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(S.key)}`,{
-      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
-    });
-    const data = await res.json().catch(()=>({}));
-
-    if(data.error){
-      lastErr = data.error.message || "Gagal.";
-      if(/not found|not supported|unsupported|does not exist/i.test(lastErr)) continue; // coba model lain
-      throw new Error(lastErr);
-    }
-    const parts = data?.candidates?.[0]?.content?.parts || [];
-    const text = parts.map(p=>p.text||"").join("").trim();
-    if(!text){ lastErr = "Model tidak mengembalikan teks."; continue; }
-
-    if(model !== S.model){
-      S.model = model; localStorage.setItem('ai_model',model);
-      document.getElementById('modelBadge').textContent = model;
-      toast("Beralih ke model "+model);
-    }
-    return text;
-  }
-  throw new Error(lastErr);
-}
-
-/* pisahkan prosa dan blok JSON */
-function splitReply(text){
-  let prose = text, raw = null;
-  const m1 = text.match(/\$\$DASH(?:BOARD_JSON)?\s*([\s\S]*?)\s*\$\$DASH(?:BOARD_JSON)?/);
-  if(m1){ raw = m1[1]; prose = text.replace(m1[0],'').trim(); }
-  else{
-    const m2 = text.match(/\$\$DASH(?:BOARD_JSON)?\s*([\s\S]*)$/);
-    if(m2){ raw = m2[1]; prose = text.replace(m2[0],'').trim(); }
-    else{
-      const m3 = text.match(/```json\s*([\s\S]*?)```/);
-      if(m3 && /"charts"|"kpis"/.test(m3[1])){ raw = m3[1]; prose = text.replace(m3[0],'').trim(); }
-    }
-  }
-  if(!raw) return { prose, dash:null };
-
-  raw = raw.replace(/```json|```/g,'').trim();
-  const a = raw.indexOf('{'), b = raw.lastIndexOf('}');
-  if(a<0||b<0) return { prose, dash:null };
-  try{ return { prose, dash: JSON.parse(raw.slice(a,b+1)) }; }
-  catch(e){ console.warn('JSON dashboard tidak valid:',e); return { prose, dash:null }; }
-}
-
-/* ============================================================
-   DASHBOARD RENDER
-============================================================ */
-function showSkeleton(){
-  document.getElementById('content').innerHTML =
-    `<div class="skeleton">
-       <div class="sk" style="height:96px"></div>
-       <div class="sk" style="height:300px"></div>
-       <div class="sk" style="height:220px"></div>
-     </div>`;
-}
-function restoreCanvas(){
-  if(S.dashboard) drawDashboard(S.dashboard);
-  else{
-    document.getElementById('content').innerHTML =
-      `<div class="empty">
-         <div class="bars"><i></i><i></i><i></i><i></i><i></i></div>
-         <h3>Belum ada yang digambar</h3>
-         <p>Minta rekap, perbandingan, atau tren — hasilnya muncul di sini.</p>
-         <div class="chips" id="starterChips"></div>
-       </div>`;
-    renderStarters();
-  }
-}
-
-const PALETTE = ['#E8453C','#F5A623','#7B2D8E','#4A90D9','#38E1A4','#F97316','#9B8CFF','#E879F9'];
-
-/* Warna brand per stasiun — dipakai otomatis kalau nama seri cocok,
-   supaya iNews selalu merah, tvOne oranye, dst. di semua grafik. */
-const CHANNEL_COLORS = {
-  inews:'#E8453C', tvone:'#F5A623', kompastv:'#7B2D8E', kompas:'#7B2D8E',
-  metro:'#4A90D9', metrotv:'#4A90D9', rcti:'#1B6CC4', mnctv:'#E23A2E',
-  gtv:'#F2A007', inewstv:'#E8453C', sctv:'#00A0E3', indosiar:'#F5B301',
-  trans7:'#4B2E83', transtv:'#C8102E', antv:'#7AB800', tvri:'#0B4DA2', net:'#E03A3E'
-};
-const keyOf = s => String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
-
-/* Warna final: pakai warna brand bila nama seri/label dikenali, sisanya dari palet. */
-function resolveColors(names){
-  return names.map((n,i) => CHANNEL_COLORS[keyOf(n)] || PALETTE[i % PALETTE.length]);
-}
-
-/* Label sumbu X "Jan 2026" dipecah jadi dua baris seperti contoh. */
-function splitLabels(labels){
-  return (labels||[]).map(l=>{
-    const p = String(l).trim().split(/\s+/);
-    return (p.length===2 && /^\d{4}$/.test(p[1])) ? [p[0], p[1]] : l;
+  userInput.addEventListener('input', () => {
+    userInput.style.height = 'auto';
+    userInput.style.height = Math.min(userInput.scrollHeight, 140) + 'px';
   });
-}
 
-/* Ukuran angka di atas titik/bar. 9px menyamai contoh infografis yang diunggah.
-   Turunkan ke 5.5 kalau ingin sekecil versi sebelumnya. */
-const DATA_LABEL_PX = 9;
+  userInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  });
 
-function drawDashboard(d){
-  S.dashboard = d;
-  S.charts.forEach(c=>{ try{c.destroy();}catch(e){} });
-  S.charts = [];
+  sendBtn.addEventListener('click', send);
 
-  document.getElementById('dashTitle').textContent = d.title || "Analisis TV Share";
-  document.getElementById('dashSub').textContent   = d.subtitle || "Disusun otomatis dari data spreadsheet.";
-  document.getElementById('eyebrow').textContent   = new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
 
-  const box = document.getElementById('content');
-  box.innerHTML = '';
+  // Kerangka pesan bersama: baris (avatar + kolom isi) dipakai baik oleh
+  // pesan biasa (appendMessage) maupun balasan asisten yang bisa berisi
+  // chart/file (appendAssistantMessage) — supaya keduanya konsisten dengan
+  // tampilan baru (avatar di desktop, bubble di mobile).
+  function createMessageShell(role, labelText) {
+    const div = document.createElement('div');
+    div.className = 'msg ' + role;
+    const row = document.createElement('div');
+    row.className = 'msg-row';
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar';
+    avatar.textContent = (labelText || '?').charAt(0).toUpperCase();
+    const inner = document.createElement('div');
+    inner.className = 'msg-inner';
+    const label = document.createElement('div');
+    label.className = 'msg-label';
+    label.textContent = labelText;
+    inner.appendChild(label);
+    row.appendChild(avatar);
+    row.appendChild(inner);
+    div.appendChild(row);
+    return { div, inner };
+  }
 
-  /* KPI */
-  if(Array.isArray(d.kpis) && d.kpis.length){
-    const g = document.createElement('div'); g.className='kpis';
-    d.kpis.slice(0,5).forEach(k=>{
-      const tr = (k.trend||'flat').toLowerCase();
-      const arrow = tr==='up'?'▲':tr==='down'?'▼':'—';
-      const el = document.createElement('div'); el.className='kpi';
-      el.innerHTML =
-        `<div class="kpi-label">${esc(k.label||k.title||'')}</div>
-         <div class="kpi-val">${esc(k.value ?? '-')}</div>
-         ${(k.delta||k.note) ? `<div class="kpi-foot">
-            ${k.delta?`<span class="delta ${tr}">${arrow} ${esc(k.delta)}</span>`:''}
-            ${k.note?`<span>${esc(k.note)}</span>`:''}
-          </div>`:''}`;
-      g.appendChild(el);
+  function appendMessage(role, content) {
+    const el = document.getElementById('emptyState');
+    if (el) el.remove();
+
+    const labelText = role === 'user' ? 'Kamu' : (role === 'error' ? 'Error' : 'Asisten');
+    const { div, inner } = createMessageShell(role, labelText);
+    const body = document.createElement('div');
+    body.className = 'msg-body';
+    body.innerHTML = escapeHtml(content);
+    inner.appendChild(body);
+
+    chatEl.appendChild(div);
+    chatEl.scrollTop = chatEl.scrollHeight;
+    return div;
+  }
+
+  // --- Dukungan chart & file ---
+  // Balasan Claude bisa mengandung blok ```chart ... ``` dan/atau
+  // ```file ... ``` — kita pisahkan dari teks biasa, lalu render masing-masing.
+  function parseSpecialBlocks(rawText) {
+    let text = rawText;
+    let chart = null;
+    let file = null;
+
+    const chartMatch = text.match(/```chart\s*([\s\S]*?)```/);
+    if (chartMatch) {
+      try { chart = JSON.parse(chartMatch[1].trim()); } catch (e) { chart = null; }
+      text = text.slice(0, chartMatch.index) + text.slice(chartMatch.index + chartMatch[0].length);
+    }
+
+    const fileMatch = text.match(/```file\s*([\s\S]*?)```/);
+    if (fileMatch) {
+      try { file = JSON.parse(fileMatch[1].trim()); } catch (e) { file = null; }
+      text = text.slice(0, fileMatch.index) + text.slice(fileMatch.index + fileMatch[0].length);
+    }
+
+    text = text.replace(/\n{3,}/g, '\n\n').trim();
+    return { text, chart, file };
+  }
+
+  let chartCounter = 0;
+
+  function cssVar(name, fallback) {
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return v || fallback;
+  }
+
+  function renderChart(canvas, config) {
+    // Warna diambil dari variabel tema yang sedang aktif (otomatis beda di
+    // desktop vs mobile) supaya grafik selalu senada, bukan warna tetap.
+    const palette = ['#10a37f', '#f0883e', '#6366f1', '#ec4899', '#0ea5e9', '#f59e0b'];
+    const textColor = cssVar('--text', '#333333');
+    const dimColor = cssVar('--text-dim', '#888888');
+    const gridColor = cssVar('--border', '#eeeeee');
+    const bgColor = cssVar('--bg', '#ffffff');
+
+    const type = ['bar', 'line', 'pie'].includes(config.type) ? config.type : 'bar';
+    const labels = config.labels || [];
+    const series = config.series || [];
+
+    let chartData;
+    if (type === 'pie') {
+      const s = series[0];
+      chartData = {
+        labels,
+        datasets: [{
+          data: s ? s.values : [],
+          backgroundColor: labels.map((_, i) => palette[i % palette.length]),
+          borderColor: bgColor,
+          borderWidth: 2
+        }]
+      };
+    } else {
+      chartData = {
+        labels,
+        datasets: series.map((s, i) => ({
+          label: s.name || ('Seri ' + (i + 1)),
+          data: s.values || [],
+          backgroundColor: type === 'bar' ? palette[i % palette.length] : 'transparent',
+          borderColor: palette[i % palette.length],
+          borderWidth: 2.5,
+          borderRadius: type === 'bar' ? 6 : 0,
+          borderSkipped: false,
+          maxBarThickness: 46,
+          tension: 0.35,
+          pointRadius: type === 'line' ? 3 : 0,
+          pointBackgroundColor: palette[i % palette.length]
+        }))
+      };
+    }
+
+    new Chart(canvas, {
+      type,
+      data: chartData,
+      options: {
+        responsive: true,
+        animation: { duration: 500 },
+        plugins: {
+          legend: {
+            display: series.length > 1 || type === 'pie',
+            labels: { color: textColor, font: { family: 'Inter', size: 11 }, usePointStyle: true, boxWidth: 8 }
+          }
+        },
+        scales: type === 'pie' ? {} : {
+          x: { ticks: { color: dimColor, font: { family: 'Inter', size: 11 } }, grid: { display: false } },
+          y: { ticks: { color: dimColor, font: { family: 'Inter', size: 11 } }, grid: { color: gridColor } }
+        }
+      }
     });
-    box.appendChild(g);
   }
 
-  /* CHARTS */
-  if(Array.isArray(d.charts) && d.charts.length){
-    const grid = document.createElement('div'); grid.className='charts';
-    d.charts.slice(0,4).forEach((c,i)=>{
-      const card = document.createElement('div');
-      card.className = 'card' + ((c.span==='full' || d.charts.length===1) ? ' full' : '');
-      card.style.animationDelay = (i*0.07)+'s';
-      const id = 'cv'+i+'_'+Date.now();
-      card.innerHTML =
-        `<div class="card-head">
-           <div class="card-title">${esc(c.title||'Grafik')}</div>
-           <div class="card-note">${esc(c.note || (c.suffix==='%'?'satuan %':''))}</div>
-         </div>
-         ${c.subtitle?`<div class="card-sub">${esc(c.subtitle)}</div>`:''}
-         <div id="${id}"></div>`;
-      grid.appendChild(card);
-      setTimeout(()=>mountChart(id,c),40);
+  // ---- Generator file (jalan di browser, tidak perlu backend) ----
+
+  async function generateDocxBlob(config) {
+    const { Document, Packer, Paragraph, HeadingLevel } = window.docx;
+    const children = [];
+    if (config.title) {
+      children.push(new Paragraph({ text: config.title, heading: HeadingLevel.TITLE }));
+    }
+    (config.sections || []).forEach(section => {
+      if (section.heading) {
+        const level = section.level === 2 ? HeadingLevel.HEADING_2 : HeadingLevel.HEADING_1;
+        children.push(new Paragraph({ text: section.heading, heading: level }));
+      }
+      (section.paragraphs || []).forEach(p => children.push(new Paragraph({ text: p })));
     });
-    box.appendChild(grid);
+    const doc = new Document({ sections: [{ children }] });
+    return await Packer.toBlob(doc);
   }
 
-  /* INSIGHTS */
-  if(Array.isArray(d.insights) && d.insights.length){
-    const w = document.createElement('div'); w.className='insights';
-    w.innerHTML = `<h4>Catatan temuan</h4>` + d.insights.slice(0,5).map((it,i)=>{
-      const title = typeof it==='string' ? '' : (it.title||'');
-      const body  = typeof it==='string' ? it : (it.text||it.desc||'');
-      return `<div class="ins"><div class="idx">${String(i+1).padStart(2,'0')}</div>
-        <div class="ins-body">${title?`<strong>${esc(title)}</strong>`:''}<p>${esc(body)}</p></div></div>`;
-    }).join('');
-    box.appendChild(w);
+  async function generatePptxBlob(config) {
+    const pptx = new PptxGenJS();
+    (config.slides || []).forEach(slide => {
+      const s = pptx.addSlide();
+      if (slide.title) {
+        s.addText(slide.title, { x: 0.5, y: 0.4, w: 9, fontSize: 24, bold: true, color: '1F2A2E' });
+      }
+      if (slide.bullets && slide.bullets.length) {
+        s.addText(
+          slide.bullets.map(b => ({ text: b, options: { bullet: true, breakLine: true } })),
+          { x: 0.6, y: 1.3, w: 8.8, fontSize: 16, color: '333333' }
+        );
+      }
+    });
+    return await pptx.write('blob');
   }
 
-  /* TABLE */
-  const t = d.table;
-  if(t && Array.isArray(t.columns) && Array.isArray(t.rows) && t.rows.length){
-    const w = document.createElement('div'); w.className='tablewrap';
-    const head = t.columns.map(c=>`<th>${esc(c)}</th>`).join('');
-    const body = t.rows.slice(0,12).map(r=>
-      '<tr>'+r.map((v,i)=>`<td class="${i>0 && !isNaN(toNum(v))?'num':''}">${esc(v)}</td>`).join('')+'</tr>').join('');
-    w.innerHTML = `<h4>${esc(t.title||'Rincian data')}</h4><div class="scrollx"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
-    box.appendChild(w);
+  async function generateXlsxBlob(config) {
+    const workbook = new ExcelJS.Workbook();
+    (config.sheets || []).forEach(sheet => {
+      const ws = workbook.addWorksheet(sheet.name || 'Sheet1');
+      if (sheet.headers) {
+        ws.addRow(sheet.headers);
+        ws.getRow(1).font = { bold: true };
+      }
+      (sheet.rows || []).forEach(row => ws.addRow(row));
+      ws.columns.forEach(col => { col.width = 18; });
+    });
+    const buffer = await workbook.xlsx.writeBuffer();
+    return new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   }
 
-  document.querySelector('.canvas-wrap').scrollTop = 0;
-}
-
-function mountChart(id, c){
-  const el = document.getElementById(id); if(!el) return;
-  const dark = S.theme === 'dark';
-  const txt  = dark ? '#A7B6D4' : '#5A6B85';
-  const panelBg = dark ? '#121A2B' : '#FFFFFF';
-  let type = (c.type||'bar').toLowerCase();
-  const horizontal = type === 'bar' && (c.horizontal === true);
-  if(type === 'column') type = 'bar';
-
-  /* Gaya infografis: garis digambar dengan area gradien tipis di bawahnya.
-     Set "plain":true pada objek chart kalau ingin garis polos tanpa arsiran. */
-  if(type === 'line' && c.plain !== true) type = 'area';
-
-  const pie = type==='donut' || type==='pie';
-  let series = c.series;
-  if(pie){
-    series = Array.isArray(c.series) && typeof c.series[0]==='object'
-      ? (c.series[0].data||[]) : (c.series||[]);
-    series = series.map(v => Number(v)||0);
-  }else if(Array.isArray(series) && typeof series[0]==='number'){
-    series = [{name:c.name||'Nilai', data:series}];
+  async function buildFile(fileConfig) {
+    const filename = fileConfig.filename || ('dokumen.' + fileConfig.type);
+    let blob;
+    if (fileConfig.type === 'docx') blob = await generateDocxBlob(fileConfig);
+    else if (fileConfig.type === 'pptx') blob = await generatePptxBlob(fileConfig);
+    else if (fileConfig.type === 'xlsx') blob = await generateXlsxBlob(fileConfig);
+    else throw new Error('Tipe file tidak dikenal: ' + fileConfig.type);
+    return { blob, filename };
   }
 
-  /* Warna mengikuti nama seri: iNews merah, tvOne oranye, KompasTV ungu, dst. */
-  const names  = pie ? (c.labels||[]) : (series||[]).map(s=>s.name);
-  const colors = resolveColors(names);
-
-  const lineish = type==='area' || type==='line';
-  const suffix = c.suffix || '';
-  const opt = {
-    series,
-    chart:{
-      type, height: c.height || 340, fontFamily:"'Inter Tight',sans-serif",
-      background:'transparent', foreColor:txt, parentHeightOffset:0,
-      toolbar:{show:true, tools:{download:true,selection:false,zoom:false,pan:false,reset:false}},
-      animations:{easing:'easeinout', speed:600}
-    },
-    theme:{ mode: dark?'dark':'light' },
-    colors,
-    dataLabels:{
-      enabled:true,
-      formatter: v => pie ? (Number(v).toFixed(1)+'%') : (v===null?'':fmt(v)+suffix),
-      /* di grafik garis/area, angka mengambil warna serinya sendiri */
-      style:{ fontSize:DATA_LABEL_PX+'px', fontWeight:700, fontFamily:"'Inter Tight',sans-serif",
-              colors: lineish ? colors : [dark?'#0A0F1C':'#FFFFFF'] },
-      background:{ enabled:false },
-      offsetY: lineish ? -9 : (type==='bar' && !horizontal ? -10 : 0)
-    },
-    plotOptions:{
-      bar:{ horizontal, borderRadius:5, columnWidth:'56%', barHeight:'62%', dataLabels:{position:'top'} },
-      pie:{ donut:{ size:'62%', labels:{ show:true, total:{ show:true, label:'Total', fontFamily:"'Bricolage Grotesque',sans-serif" } } } }
-    },
-    stroke:{ curve:'smooth', width: lineish ? 2.5 : (pie?2:0),
-             colors: pie ? [panelBg] : undefined },
-    fill: type==='area'
-      ? { type:'gradient', gradient:{ shadeIntensity:1, opacityFrom:.30, opacityTo:.02, stops:[0,90,100] } }
-      : { opacity:1 },
-    markers:{ size: lineish?4:0, strokeWidth:2, strokeColors:panelBg, hover:{size:6} },
-    labels: pie ? (c.labels||[]) : undefined,
-    xaxis: pie ? undefined : {
-      categories: splitLabels(c.labels),
-      labels:{ style:{fontSize:'11px', fontWeight:500}, rotate:0, trim:false, hideOverlappingLabels:true },
-      axisBorder:{ show:true, color: dark?'#243350':'#DCE3F0' },
-      axisTicks:{ show:true, color: dark?'#243350':'#DCE3F0', height:5 },
-      tooltip:{ enabled:false }
-    },
-    /* Sumbu Y disembunyikan — angka sudah menempel di tiap titik.
-       Set "showAxis":true pada objek chart kalau tetap ingin skala di kiri. */
-    yaxis: pie ? undefined : {
-      show: c.showAxis === true,
-      labels:{ formatter: v=>fmt(v)+suffix, style:{fontSize:'11px'} }
-    },
-    grid:{ show:!pie, borderColor: dark?'rgba(255,255,255,.07)':'#EDF1F7', strokeDashArray:0,
-           xaxis:{ lines:{ show:false } }, yaxis:{ lines:{ show:true } },
-           padding:{ top:0, right:16, bottom:0, left:16 } },
-    legend:{ position:'top', horizontalAlign:'left', fontSize:'12px', fontWeight:600, offsetY:2,
-             markers:{radius:12, width:9, height:9}, itemMargin:{horizontal:12,vertical:4} },
-    tooltip:{ theme: dark?'dark':'light', shared:lineish, intersect:false,
-              y:{ formatter: v=> fmt(v)+suffix } },
-    noData:{ text:'Tidak ada data untuk grafik ini', style:{ color:txt } },
-    responsive:[{ breakpoint:640, options:{ chart:{height:300}, xaxis:{labels:{rotate:-45}} } }]
-  };
-
-  try{
-    const ch = new ApexCharts(el, opt);
-    ch.render(); S.charts.push(ch);
-  }catch(e){ el.innerHTML = '<p style="color:var(--txt-dim);font-size:13px;padding:20px 0">Grafik tidak bisa digambar.</p>'; }
-}
-
-/* ============================================================
-   EXPORT PNG
-============================================================ */
-async function exportDashboard(){
-  if(!S.dashboard){ toast("Belum ada dashboard untuk diunduh",true); return; }
-  const btn = document.getElementById('btnExport');
-  const label = btn.querySelector('.label'); const old = label ? label.textContent : '';
-  if(label) label.textContent = "Menyiapkan…";
-  btn.disabled = true;
-  try{
-    const node = document.getElementById('canvas');
-    const bg = getComputedStyle(document.body).backgroundColor;
-    const cv = await html2canvas(node,{ backgroundColor:bg, scale:2, useCORS:true, logging:false,
-                                        windowWidth: node.scrollWidth, windowHeight: node.scrollHeight });
-    const a = document.createElement('a');
-    a.download = `AiNews-Dashboard-${new Date().toISOString().slice(0,10)}.png`;
-    a.href = cv.toDataURL('image/png');
-    a.click();
-    toast("Gambar dashboard terunduh");
-  }catch(e){
-    toast("Gagal membuat gambar",true);
-  }finally{
-    if(label) label.textContent = old; btn.disabled = false;
+  function fileIconFor(type) {
+    if (type === 'docx') return '📄';
+    if (type === 'pptx') return '📊';
+    if (type === 'xlsx') return '📈';
+    return '📁';
   }
-}
 
-/* ============================================================
-   INIT — dipanggil terakhir supaya seluruh fungsi & konstanta
-   di atas sudah terdefinisi sebelum ada yang memakainya.
-============================================================ */
-function init(){
-  document.documentElement.dataset.theme = S.theme;
-  document.getElementById('modelBadge').textContent = S.model;
-  renderStarters();
-  autoGrow();
+  async function renderFileCard(container, fileConfig) {
+    const card = document.createElement('div');
+    card.className = 'file-card';
+    card.textContent = 'Menyiapkan file...';
+    container.appendChild(card);
+    chatEl.scrollTop = chatEl.scrollHeight;
 
-  if(!S.key || !S.url){
-    setStatus(!S.key ? "Perlu API key" : "Perlu URL Web App","warn");
-    bot("Selamat datang di **AiNews**.\n\nSaya membaca **semua tab** spreadsheet lewat Apps Script Web App, lalu menyusunnya jadi dashboard di panel kiri.\n\nDi **Pengaturan** isi tiga hal: Gemini API Key, URL Web App (berakhiran `/exec`), dan token.");
-    setTimeout(openSettings, 700);
-  }else{
-    bot("Selamat datang kembali. Membaca daftar tab…");
-    loadCatalog();
+    try {
+      const { blob, filename } = await buildFile(fileConfig);
+      const url = URL.createObjectURL(blob);
+
+      card.className = 'file-card ready';
+      card.innerHTML = '';
+
+      const icon = document.createElement('span');
+      icon.className = 'file-icon';
+      icon.textContent = fileIconFor(fileConfig.type);
+
+      const info = document.createElement('div');
+      info.className = 'file-info';
+      const nameEl = document.createElement('div');
+      nameEl.className = 'file-name';
+      nameEl.textContent = filename;
+      const typeEl = document.createElement('div');
+      typeEl.className = 'file-type';
+      typeEl.textContent = fileConfig.type.toUpperCase();
+      info.appendChild(nameEl);
+      info.appendChild(typeEl);
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.className = 'file-download';
+      link.textContent = 'Unduh';
+
+      card.appendChild(icon);
+      card.appendChild(info);
+      card.appendChild(link);
+    } catch (err) {
+      card.className = 'file-card error';
+      card.textContent = 'Gagal membuat file: ' + err.message;
+    }
+    chatEl.scrollTop = chatEl.scrollHeight;
   }
-}
 
-init();
+  function appendAssistantMessage(rawText) {
+    const el = document.getElementById('emptyState');
+    if (el) el.remove();
+
+    const { text, chart, file } = parseSpecialBlocks(rawText);
+
+    const { div, inner } = createMessageShell('ai', 'Asisten');
+
+    if (text) {
+      const body = document.createElement('div');
+      body.className = 'msg-body';
+      body.innerHTML = escapeHtml(text);
+      inner.appendChild(body);
+
+      if ('speechSynthesis' in window) {
+        const speakBtn = document.createElement('button');
+        speakBtn.type = 'button';
+        speakBtn.className = 'msg-speak';
+        speakBtn.textContent = '🔊';
+        speakBtn.title = 'Dengarkan balasan ini';
+        speakBtn.addEventListener('click', () => speak(text));
+        inner.appendChild(speakBtn);
+      }
+    }
+
+    chatEl.appendChild(div);
+
+    if (chart) {
+      chartCounter += 1;
+      const wrap = document.createElement('div');
+      wrap.className = 'chart-wrap';
+      if (chart.title) {
+        const title = document.createElement('div');
+        title.className = 'chart-wrap-title';
+        title.textContent = chart.title;
+        wrap.appendChild(title);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.id = 'chart-' + chartCounter;
+      canvas.height = 200;
+      wrap.appendChild(canvas);
+      inner.appendChild(wrap);
+      renderChart(canvas, chart);
+    }
+
+    if (file) {
+      renderFileCard(inner, file); // async, tidak perlu ditunggu
+    }
+
+    if (text && autoSpeak) speak(text);
+
+    chatEl.scrollTop = chatEl.scrollHeight;
+    return div;
+  }
+
+  async function send() {
+    const text = userInput.value.trim();
+    if (!text || busy) return;
+
+    appendMessage('user', text);
+    history.push({ role: 'user', content: text });
+    userInput.value = '';
+    userInput.style.height = 'auto';
+
+    busy = true;
+    sendBtn.disabled = true;
+    if (SpeechRecognitionCtor) micBtn.disabled = true;
+    const thinkingEl = document.createElement('div');
+    thinkingEl.className = 'msg thinking';
+    thinkingEl.textContent = 'Asisten sedang mengetik...';
+    chatEl.appendChild(thinkingEl);
+    chatEl.scrollTop = chatEl.scrollHeight;
+
+    try {
+      // Backend sudah otomatis membawa instructions.md + isi folder knowledge/
+      // sebagai konteks — frontend cukup kirim riwayat percakapan.
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: history })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || ('Request gagal (' + response.status + ')'));
+      }
+
+      const reply = (data.content || [])
+        .map(block => block.text || '')
+        .filter(Boolean)
+        .join('\n');
+
+      thinkingEl.remove();
+      if (reply) {
+        appendAssistantMessage(reply);
+      } else {
+        appendMessage('ai', '(tidak ada respons)');
+      }
+      history.push({ role: 'assistant', content: reply });
+
+    } catch (err) {
+      thinkingEl.remove();
+      appendMessage('error', 'Gagal menghubungi asisten: ' + err.message);
+    } finally {
+      busy = false;
+      sendBtn.disabled = false;
+      if (SpeechRecognitionCtor) micBtn.disabled = false;
+      userInput.focus();
+    }
+  }
 </script>
+
 </body>
 </html>

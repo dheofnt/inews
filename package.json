@@ -1,0 +1,6 @@
+{
+  "name": "konsol-data-claude",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Chat UI + backend proxy yang menghubungkan ke Google Gemini API (gratis dalam batas kuota) tanpa membocorkan API key ke browser."
+}
