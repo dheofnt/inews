@@ -16,7 +16,7 @@
 import fs from 'fs';
 import path from 'path';
 
-const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_MODEL = 'gemini-3.6-flash';
 
 // Aturan chart ini SELALU ditambahkan ke system prompt, terpisah dari
 // instructions.md, supaya fitur grafik tetap jalan walau owner belum
