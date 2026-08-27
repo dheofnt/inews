@@ -102,49 +102,6 @@
   .btn-icon:hover{background:var(--bg);color:var(--text);}
   .btn-icon.active{background:rgba(37,211,102,0.15);color:#128C7E;}
 
-  /* ---- Sub-header Input Google Sheets ---- */
-  .sheets-bar{
-    padding:8px 20px;
-    background:var(--surface);
-    border-bottom:1px solid var(--border);
-    display:flex;
-    gap:8px;
-    align-items:center;
-    flex-shrink:0;
-  }
-  .sheets-input{
-    flex:1;
-    padding:7px 12px;
-    border:1px solid var(--border);
-    border-radius:18px;
-    font-size:13px;
-    outline:none;
-    background:var(--bg);
-    color:var(--text);
-  }
-  .sheets-input:focus{
-    border-color:var(--accent-user);
-    background:var(--surface);
-  }
-  .btn-load-sheet{
-    background:var(--accent-user);
-    color:#fff;
-    border:none;
-    padding:7px 14px;
-    border-radius:18px;
-    font-size:12.5px;
-    font-weight:600;
-    cursor:pointer;
-    flex-shrink:0;
-    transition:opacity 0.15s;
-  }
-  .btn-load-sheet:hover{opacity:0.9;}
-  .sheet-status{
-    font-size:12px;
-    color:var(--text-dim);
-    white-space:nowrap;
-  }
-
   .chat{flex:1;overflow-y:auto;display:flex;flex-direction:column;background:var(--bg);padding:16px 8%;gap:8px;}
   .empty-state{margin:auto;text-align:center;color:var(--text-dim);font-size:13px;max-width:340px;padding:20px;}
   .empty-state b{color:var(--text);font-family:'Space Grotesk',sans-serif;}
@@ -261,8 +218,6 @@
     .btn-icon:hover{background:rgba(255,255,255,0.15);color:#fff;}
     .btn-icon.active{background:rgba(255,255,255,0.2);color:#fff;}
 
-    .sheets-bar{padding:8px 10px;}
-
     .chat{padding:12px 10px;}
     .msg{max-width:82%;}
     textarea#userInput{font-size:16px;}
@@ -305,13 +260,6 @@
       </div>
     </div>
 
-    <!-- Toolbar Input URL Google Sheets -->
-    <div class="sheets-bar">
-      <input type="text" id="sheetUrlInput" class="sheets-input" placeholder="https://docs.google.com/spreadsheets/d/e/2PACX-1vSs8ManYG0M-AzuUgwHZxWdLFr7bdPiBtHbJOe49JETfdakJAoW3S6GStWrlJcAWKFH9dEPyMCgarUy/pub?output=csv/>
-      <button type="button" class="btn-load-sheet" onclick="loadSpreadsheetData()">Muat Data</button>
-      <span id="sheetStatus" class="sheet-status"></span>
-    </div>
-
     <div class="chat" id="chat">
       <div class="empty-state" id="emptyState">
         <b>Mulai ngobrol</b><br>
@@ -339,60 +287,30 @@
   const micBtn = document.getElementById('micBtn');
   const speakToggleBtn = document.getElementById('speakToggleBtn');
 
-  let history = []; // {role, content}
+  let history = []; 
   let busy = false;
-  let loadedSheetData = ""; // Tempat menyimpan data dari Google Sheets yang dimuat
+  let loadedSheetData = ""; // Tempat menyimpan data dari URL Google Sheets
 
-  // ---- Pengolah URL Google Sheets ke CSV ----
-  function formatCsvUrl(rawUrl) {
-    let url = rawUrl.trim();
-    if (url.includes('/pubhtml')) {
-      return url.replace('/pubhtml', '/pub?output=csv');
-    }
-    if (url.includes('/pub?')) {
-      if (!url.includes('output=csv')) {
-        return url + '&output=csv';
-      }
-      return url;
-    }
-    // Jika user menginput URL standar Google Sheets
-    const docIdMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
-    if (docIdMatch && docIdMatch[1]) {
-      return `https://docs.google.com/spreadsheets/d/${docIdMatch[1]}/export?format=csv`;
-    }
-    return url;
-  }
+  // Endpoint CSV langsung dari URL yang diberikan
+  const SPREADSHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSs8ManYG0M-AzuUgwHZxWdLFr7bdPiBtHbJOe49JETfdakJAoW3S6GStWrlJcAWKFH9dEPyMCgarUy/pub?output=csv";
 
-  async function loadSpreadsheetData() {
-    const rawUrl = document.getElementById('sheetUrlInput').value;
-    const statusEl = document.getElementById('sheetStatus');
-
-    if (!rawUrl.trim()) {
-      alert("Masukkan URL Google Sheets terlebih dahulu.");
-      return;
-    }
-
-    statusEl.style.color = "var(--text-dim)";
-    statusEl.textContent = "⏳ Memuat data...";
-
+  // Memuat data secara otomatis di latar belakang saat aplikasi pertama kali dibuka
+  async function fetchSpreadsheetDataAuto() {
     try {
-      const csvUrl = formatCsvUrl(rawUrl);
-      const res = await fetch(csvUrl);
-
-      if (!res.ok) {
-        throw new Error("Gagal mengambil file. Pastikan Sheet sudah di 'Publish to Web' atau diset Publik.");
+      const res = await fetch(SPREADSHEET_CSV_URL);
+      if (res.ok) {
+        loadedSheetData = await res.text();
+        console.log("Data Google Sheets berhasil dimuat secara otomatis.");
+      } else {
+        console.error("Gagal memuat data Google Sheets otomatis, HTTP Status:", res.status);
       }
-
-      loadedSheetData = await res.text();
-      statusEl.style.color = "var(--accent-user)";
-      statusEl.textContent = "✓ Data dimuat!";
-      appendMessage('ai', 'Data dari Google Sheets berhasil dimuat dan siap digunakan.');
     } catch (err) {
-      statusEl.style.color = "#c0392b";
-      statusEl.textContent = "✕ Gagal memuat";
-      appendMessage('error', 'Gagal membaca Google Sheets: ' + err.message);
+      console.error("Gagal mengambil data dari Google Sheets:", err);
     }
   }
+  
+  // Panggil pembacaan data otomatis
+  fetchSpreadsheetDataAuto();
 
   // ---- Fitur suara: input suara (STT) + baca balasan (TTS) ----
   const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -781,7 +699,7 @@
 
     appendMessage('user', text);
 
-    // Menyisipkan konteks data Google Sheets jika data telah dimuat
+    // Otomatis melampirkan isi spreadsheet ke dalam payload pesan yang dikirim
     let finalPayloadContent = text;
     if (loadedSheetData) {
       finalPayloadContent += `\n\n[KONTEKS DATA SPREADSHEET GOOGLE SHEETS]:\n${loadedSheetData}`;
