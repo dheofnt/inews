@@ -34,7 +34,7 @@
     background:var(--surface);
   }
 
-  /* ---- Sidebar ala WhatsApp Desktop (tampil di layar lebar saja) ---- */
+  /* ---- Sidebar ala WhatsApp Desktop ---- */
   .sidebar{
     width:320px;flex-shrink:0;
     background:var(--surface);
@@ -71,7 +71,7 @@
   .chat-list-name{font-size:14px;font-weight:600;color:var(--text);}
   .chat-list-preview{font-size:12.5px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
 
-  /* ---- Panel utama (header + chat + composer) ---- */
+  /* ---- Panel utama ---- */
   .main-pane{flex:1;display:flex;flex-direction:column;min-width:0;height:100%;}
 
   .header{
@@ -101,6 +101,49 @@
   }
   .btn-icon:hover{background:var(--bg);color:var(--text);}
   .btn-icon.active{background:rgba(37,211,102,0.15);color:#128C7E;}
+
+  /* ---- Sub-header Input Google Sheets ---- */
+  .sheets-bar{
+    padding:8px 20px;
+    background:var(--surface);
+    border-bottom:1px solid var(--border);
+    display:flex;
+    gap:8px;
+    align-items:center;
+    flex-shrink:0;
+  }
+  .sheets-input{
+    flex:1;
+    padding:7px 12px;
+    border:1px solid var(--border);
+    border-radius:18px;
+    font-size:13px;
+    outline:none;
+    background:var(--bg);
+    color:var(--text);
+  }
+  .sheets-input:focus{
+    border-color:var(--accent-user);
+    background:var(--surface);
+  }
+  .btn-load-sheet{
+    background:var(--accent-user);
+    color:#fff;
+    border:none;
+    padding:7px 14px;
+    border-radius:18px;
+    font-size:12.5px;
+    font-weight:600;
+    cursor:pointer;
+    flex-shrink:0;
+    transition:opacity 0.15s;
+  }
+  .btn-load-sheet:hover{opacity:0.9;}
+  .sheet-status{
+    font-size:12px;
+    color:var(--text-dim);
+    white-space:nowrap;
+  }
 
   .chat{flex:1;overflow-y:auto;display:flex;flex-direction:column;background:var(--bg);padding:16px 8%;gap:8px;}
   .empty-state{margin:auto;text-align:center;color:var(--text-dim);font-size:13px;max-width:340px;padding:20px;}
@@ -203,8 +246,6 @@
   }
   .file-download:hover{opacity:0.85;}
 
-  /* ---- Mobile (≤700px): sidebar disembunyikan, header jadi gradasi teal
-     ala aplikasi WhatsApp mobile (bukan WhatsApp Desktop) ---- */
   @media (max-width: 700px){
     .sidebar{display:none;}
     .header{
@@ -220,9 +261,11 @@
     .btn-icon:hover{background:rgba(255,255,255,0.15);color:#fff;}
     .btn-icon.active{background:rgba(255,255,255,0.2);color:#fff;}
 
+    .sheets-bar{padding:8px 10px;}
+
     .chat{padding:12px 10px;}
     .msg{max-width:82%;}
-    textarea#userInput{font-size:16px;} /* cegah auto-zoom iOS Safari */
+    textarea#userInput{font-size:16px;}
   }
 </style>
 </head>
@@ -262,6 +305,13 @@
       </div>
     </div>
 
+    <!-- Toolbar Input URL Google Sheets -->
+    <div class="sheets-bar">
+      <input type="text" id="sheetUrlInput" class="sheets-input" placeholder="https://docs.google.com/spreadsheets/d/e/2PACX-1vSs8ManYG0M-AzuUgwHZxWdLFr7bdPiBtHbJOe49JETfdakJAoW3S6GStWrlJcAWKFH9dEPyMCgarUy/pub?output=csv/>
+      <button type="button" class="btn-load-sheet" onclick="loadSpreadsheetData()">Muat Data</button>
+      <span id="sheetStatus" class="sheet-status"></span>
+    </div>
+
     <div class="chat" id="chat">
       <div class="empty-state" id="emptyState">
         <b>Mulai ngobrol</b><br>
@@ -291,11 +341,60 @@
 
   let history = []; // {role, content}
   let busy = false;
+  let loadedSheetData = ""; // Tempat menyimpan data dari Google Sheets yang dimuat
+
+  // ---- Pengolah URL Google Sheets ke CSV ----
+  function formatCsvUrl(rawUrl) {
+    let url = rawUrl.trim();
+    if (url.includes('/pubhtml')) {
+      return url.replace('/pubhtml', '/pub?output=csv');
+    }
+    if (url.includes('/pub?')) {
+      if (!url.includes('output=csv')) {
+        return url + '&output=csv';
+      }
+      return url;
+    }
+    // Jika user menginput URL standar Google Sheets
+    const docIdMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    if (docIdMatch && docIdMatch[1]) {
+      return `https://docs.google.com/spreadsheets/d/${docIdMatch[1]}/export?format=csv`;
+    }
+    return url;
+  }
+
+  async function loadSpreadsheetData() {
+    const rawUrl = document.getElementById('sheetUrlInput').value;
+    const statusEl = document.getElementById('sheetStatus');
+
+    if (!rawUrl.trim()) {
+      alert("Masukkan URL Google Sheets terlebih dahulu.");
+      return;
+    }
+
+    statusEl.style.color = "var(--text-dim)";
+    statusEl.textContent = "⏳ Memuat data...";
+
+    try {
+      const csvUrl = formatCsvUrl(rawUrl);
+      const res = await fetch(csvUrl);
+
+      if (!res.ok) {
+        throw new Error("Gagal mengambil file. Pastikan Sheet sudah di 'Publish to Web' atau diset Publik.");
+      }
+
+      loadedSheetData = await res.text();
+      statusEl.style.color = "var(--accent-user)";
+      statusEl.textContent = "✓ Data dimuat!";
+      appendMessage('ai', 'Data dari Google Sheets berhasil dimuat dan siap digunakan.');
+    } catch (err) {
+      statusEl.style.color = "#c0392b";
+      statusEl.textContent = "✕ Gagal memuat";
+      appendMessage('error', 'Gagal membaca Google Sheets: ' + err.message);
+    }
+  }
 
   // ---- Fitur suara: input suara (STT) + baca balasan (TTS) ----
-  // Keduanya pakai Web Speech API bawaan browser — gratis, tanpa API key
-  // tambahan. Dukungan browser bervariasi: STT paling stabil di Chrome/Edge
-  // (desktop & Android) dan Safari iOS 14.5+; kurang/tidak didukung Firefox.
   const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
   let recognition = null;
   let listening = false;
@@ -383,10 +482,6 @@
     return d.innerHTML;
   }
 
-  // Kerangka pesan bersama: baris (avatar + kolom isi) dipakai baik oleh
-  // pesan biasa (appendMessage) maupun balasan asisten yang bisa berisi
-  // chart/file (appendAssistantMessage) — supaya keduanya konsisten dengan
-  // tampilan baru (avatar di desktop, bubble di mobile).
   function createMessageShell(role, labelText) {
     const div = document.createElement('div');
     div.className = 'msg ' + role;
@@ -423,9 +518,6 @@
     return div;
   }
 
-  // --- Dukungan chart & file ---
-  // Balasan Claude bisa mengandung blok ```chart ... ``` dan/atau
-  // ```file ... ``` — kita pisahkan dari teks biasa, lalu render masing-masing.
   function parseSpecialBlocks(rawText) {
     let text = rawText;
     let chart = null;
@@ -455,8 +547,6 @@
   }
 
   function renderChart(canvas, config) {
-    // Warna diambil dari variabel tema yang sedang aktif (otomatis beda di
-    // desktop vs mobile) supaya grafik selalu senada, bukan warna tetap.
     const palette = ['#10a37f', '#f0883e', '#6366f1', '#ec4899', '#0ea5e9', '#f59e0b'];
     const textColor = cssVar('--text', '#333333');
     const dimColor = cssVar('--text-dim', '#888888');
@@ -518,8 +608,7 @@
     });
   }
 
-  // ---- Generator file (jalan di browser, tidak perlu backend) ----
-
+  // ---- Generator file ----
   async function generateDocxBlob(config) {
     const { Document, Packer, Paragraph, HeadingLevel } = window.docx;
     const children = [];
@@ -677,7 +766,7 @@
     }
 
     if (file) {
-      renderFileCard(inner, file); // async, tidak perlu ditunggu
+      renderFileCard(inner, file);
     }
 
     if (text && autoSpeak) speak(text);
@@ -691,7 +780,14 @@
     if (!text || busy) return;
 
     appendMessage('user', text);
-    history.push({ role: 'user', content: text });
+
+    // Menyisipkan konteks data Google Sheets jika data telah dimuat
+    let finalPayloadContent = text;
+    if (loadedSheetData) {
+      finalPayloadContent += `\n\n[KONTEKS DATA SPREADSHEET GOOGLE SHEETS]:\n${loadedSheetData}`;
+    }
+
+    history.push({ role: 'user', content: finalPayloadContent });
     userInput.value = '';
     userInput.style.height = 'auto';
 
@@ -705,8 +801,6 @@
     chatEl.scrollTop = chatEl.scrollHeight;
 
     try {
-      // Backend sudah otomatis membawa instructions.md + isi folder knowledge/
-      // sebagai konteks — frontend cukup kirim riwayat percakapan.
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
